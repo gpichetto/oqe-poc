@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Checklist</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .checklist {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .checklist th, .checklist td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .checklist th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .checklist tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .status {
+            font-weight: bold;
+        }
+        .completed {
+            color: #27ae60;
+        }
+        .pending {
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <h1>Checklist Report</h1>
+    <table class="checklist">
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Title</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:each="item : ${items}">
+                <td>
+                    <span th:class="${item.completed} ? 'status completed' : 'status pending'"
+                          th:text="${item.completed} ? '✓ Completed' : '✗ Pending'">
+                    </span>
+                </td>
+                <td th:text="${item.title}">Title</td>
+                <td th:text="${item.description}">Description</td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
