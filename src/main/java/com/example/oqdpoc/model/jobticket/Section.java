@@ -11,6 +11,7 @@ import java.util.List;
 public class Section {
     private String id;
     private String title;
+    private String description;
     private List<Question> questions;
 
     /**
@@ -37,6 +38,19 @@ public class Section {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    /**
+     * Gets the description of the section.
+     * @return the section description
+     */
+    @JsonProperty("description")
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     /**

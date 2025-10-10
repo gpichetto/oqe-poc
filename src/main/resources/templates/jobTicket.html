@@ -23,7 +23,7 @@
         }
         
         .header {
-            background-color: var(--primary-color);
+            background-color: #1a5276 !important; /* Darker blue */
             color: white;
             padding: 1.5rem 0;
             margin-bottom: 2rem;
@@ -117,18 +117,41 @@
         .response {
             color: #555;
             margin-top: 0.5rem;
-            padding: 0.75rem;
-            background-color: var(--light-gray);
-            border-left: 3px solid var(--secondary-color);
+            background-color: #f8f9fa;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
             border-radius: 4px;
+            border-left: 4px solid var(--primary-color);
         }
         
-        .signature {
-            margin-top: 1rem;
-            padding: 1rem;
-            background-color: #f8f9fa;
-            border-radius: 4px;
-            border-left: 4px solid var(--secondary-color);
+        /* Section title styling */
+        .section-header {
+            background-color: #2c7cb8 !important; /* Darker blue */
+            color: white !important;
+            padding: 0.75rem 1.25rem !important;
+            margin: 1.5rem 0 0 0 !important;
+            border-radius: 4px 4px 0 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .section-header h4 {
+            color: white !important;
+            font-weight: 600 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 1.25rem !important;
+            line-height: 1.4 !important;
+            letter-spacing: 0.3px;
+        }
+        
+        .section-description {
+            color: #2c3e50 !important; /* Darker text for better contrast */
+            background-color: #e6f2ff !important; /* Light blue background */
+            margin: 0 !important;
+            padding: 0.75rem 1.25rem !important;
+            font-size: 0.95rem;
+            border-radius: 0 0 4px 4px;
+            border-top: none;
         }
         
         .signature-image {
@@ -268,7 +291,21 @@
         /* Print-specific styles */
         @page {
             size: A4;
-            margin: 1.5cm;
+            margin: 1.5cm 1.5cm 2.5cm 1.5cm; /* Added bottom margin for footer */
+            
+            @bottom-center {
+                content: counter(page) " / " counter(pages);
+                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                font-size: 0.8rem;
+                color: #666;
+                text-align: center;
+                width: 100%;
+            }
+        }
+        
+        /* Ensure page breaks don't split important elements */
+        .section-card, .ticket-info {
+            page-break-inside: avoid;
         }
     </style>
 </head>
@@ -276,7 +313,7 @@
 <div class="text-center mb-3">
     <img th:if="${logoUrl}" th:src="${logoUrl}" alt="Company Logo" class="img-fluid" style="max-height: 80px;" />
 </div>
-<div class="header" style="background-color: #3498db !important; color: white !important; padding: 1.5rem 0; margin-bottom: 2rem;">
+<div class="header" style="background-color: #1a5276 !important; color: white !important; padding: 1.5rem 0; margin-bottom: 2rem;">
         <div class="container">
             <div class="row">
                 <div class="col-md-8">
@@ -286,7 +323,7 @@
                 </div>
                 <div class="col-md-4 text-md-end">
                     <div class="metadata">
-                        <div><strong>Ticket ID:</strong> <span th:text="${jobTicket.id}">N/A</span></div>
+                        <div><strong>Checklist ID:</strong> <span th:text="${jobTicket.id}">N/A</span></div>
                     </div>
                 </div>
             </div>
@@ -305,13 +342,17 @@
                                 <strong>Designation:</strong>
                                 <span th:text="${jobTicket.answers.metadata.additional.asset.designation}"></span>
                             </div>
-                            <div th:if="${jobTicket.answers?.metadata?.additional?.asset?.partNumber != null and jobTicket.answers.metadata.additional.asset.partNumber != ''}" class="mb-2">
+                            <div class="mb-2">
                                 <strong>Part Number:</strong>
-                                <span th:text="${jobTicket.answers.metadata.additional.asset.partNumber}"></span>
+                                <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.partNumber != null and jobTicket.answers.metadata.additional.asset.partNumber != ''}" 
+                                      th:text="${jobTicket.answers.metadata.additional.asset.partNumber}"></span>
+                                <span th:unless="${jobTicket.answers?.metadata?.additional?.asset?.partNumber != null and jobTicket.answers.metadata.additional.asset.partNumber != ''}">-</span>
                             </div>
-                            <div th:if="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber != null and jobTicket.answers.metadata.additional.asset.serialNumber != ''}" class="mb-2">
+                            <div class="mb-2">
                                 <strong>Serial Number:</strong>
-                                <span th:text="${jobTicket.answers.metadata.additional.asset.serialNumber}"></span>
+                                <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber != null and jobTicket.answers.metadata.additional.asset.serialNumber != ''}" 
+                                      th:text="${jobTicket.answers.metadata.additional.asset.serialNumber}"></span>
+                                <span th:unless="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber != null and jobTicket.answers.metadata.additional.asset.serialNumber != ''}">-</span>
                             </div>
                         </div>
                     </div>
@@ -328,7 +369,7 @@
                             </div>
                             <div th:if="${jobTicket.user?.email}">
                                 <strong>Author:</strong> 
-                                <span class="text-muted" th:text="'(' + ${jobTicket.user.email} + ')'"></span>
+                                <span class="text-muted" th:text="${jobTicket.user.email}"></span>
                             </div>
                         </div>
                     </div>
@@ -342,7 +383,14 @@
                 <!-- Section Header -->
                 <div class="section-header">
                     <div>
-                        <h4 th:text="${section.title}">Section Title</h4>
+                        <!-- Section Title -->
+                        <h4 th:if="${section?.title != null}" th:text="${section.title}">No Title</h4>
+                        
+                        <!-- Section Description -->
+                        <p th:if="${section?.description != null and section.description.length() > 0}" 
+                           class="section-description text-muted" 
+                           th:text="${section.description}">
+                        </p>
                     </div>
                 </div>
                 
