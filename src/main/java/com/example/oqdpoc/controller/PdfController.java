@@ -34,11 +34,11 @@ public class PdfController {
     private static final String PDF_FILENAME = "checklist.pdf";
     private static final String JOB_TICKET_PDF_FILENAME = "job-ticket.pdf";
 
-    private final PdfGenerationService pdfGenerationService;
     private final ChecklistItemValidator checklistItemValidator;
+    private final PdfGenerationService pdfGenerationService;
     
-    public PdfController(PdfGenerationService pdfGenerationService, 
-                        ChecklistItemValidator checklistItemValidator) {
+    public PdfController(
+                         ChecklistItemValidator checklistItemValidator, PdfGenerationService pdfGenerationService) {
         this.pdfGenerationService = pdfGenerationService;
         this.checklistItemValidator = checklistItemValidator;
     }
@@ -80,12 +80,37 @@ public class PdfController {
         produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
         consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> renderPdf(
-            @RequestBody List<ChecklistItem> checklistItems,
+            @RequestBody(required = false) List<ChecklistItem> checklistItems,
             @RequestHeader(value = "Accept", required = false) String acceptHeader) {
         
+        // Check for null request body
+        if (checklistItems == null) {
+            log.warn("Null checklist items provided");
+            return ResponseEntity.badRequest().body(
+                Map.of(
+                    "timestamp", LocalDateTime.now(),
+                    "status", HttpStatus.BAD_REQUEST.value(),
+                    "error", "Bad Request",
+                    "message", "Request body is required"
+                )
+            );
+        }
+        
+        // Check for empty list
+        if (checklistItems.isEmpty()) {
+            log.warn("Empty checklist items provided");
+            return ResponseEntity.badRequest().body(
+                Map.of(
+                    "timestamp", LocalDateTime.now(),
+                    "status", HttpStatus.BAD_REQUEST.value(),
+                    "error", "Bad Request",
+                    "message", "At least one checklist item is required"
+                )
+            );
+        }
+        
         // Validate each item in the list
-        if (checklistItems != null) {
-            for (int i = 0; i < checklistItems.size(); i++) {
+        for (int i = 0; i < checklistItems.size(); i++) {
                 ChecklistItem item = checklistItems.get(i);
                 DataBinder binder = new DataBinder(item, "checklistItems[" + i + "]");
                 BindingResult bindingResult = binder.getBindingResult();
@@ -97,22 +122,9 @@ public class PdfController {
                     return createValidationErrorResponse(bindingResult);
                 }
             }
-        }
+
         
-        log.info("Received request to generate PDF with {} items", 
-            checklistItems != null ? checklistItems.size() : 0);
-        
-        if (checklistItems == null || checklistItems.isEmpty()) {
-            log.warn("Empty or null checklist items provided");
-            return ResponseEntity.badRequest().body(
-                Map.of(
-                    "timestamp", LocalDateTime.now(),
-                    "status", HttpStatus.BAD_REQUEST.value(),
-                    "error", "Bad Request",
-                    "message", "At least one checklist item is required"
-                )
-            );
-        }
+        log.info("Received request to generate PDF with {} items", checklistItems.size());
         
         try {
             byte[] pdfBytes = pdfGenerationService.generatePdf(checklistItems);
@@ -192,7 +204,7 @@ public class PdfController {
         }
         
         try {
-            // Generate the PDF - let the service handle all template processing
+            // Generate the PDF with retry capability
             byte[] pdfBytes = pdfGenerationService.generateJobTicketPdf(jobTicket);
             
             // Check the Accept header to determine the response type

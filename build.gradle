@@ -28,6 +28,11 @@ dependencies {
     // JSON Processing
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     
+    // Resilience4j for retry and circuit breaker
+    implementation 'org.springframework.boot:spring-boot-starter-aop'
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-retry:2.1.0'
+    
     // Lombok
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
