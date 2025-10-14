@@ -187,7 +187,7 @@
       }
 
       .selected-choice {
-        background-color: #27ae60;
+        background-color: #a0d8ef;
         font-weight: 500;
       }
 
@@ -478,6 +478,10 @@
                   <div class="question-title" th:text="${question.title}">
                     Question text
                   </div>
+                  <div th:if="${question.hint != null and question.hint != ''}" class="question-hint text-muted small mt-1">
+                    <span style="display: inline-block; background-color: #0d6efd; color: white; width: 16px; height: 16px; border-radius: 50%; text-align: center; line-height: 16px; font-size: 12px; margin-right: 6px; font-style: normal;">i</span>
+                    <span th:text="${question.hint}" style="vertical-align: middle;"></span>
+                  </div>
                 </td>
                 <td style="padding: 10px; vertical-align: top; width: 60%">
                   <!-- Text/Number/Date Response -->
@@ -521,57 +525,43 @@
 
                   <!-- Multiple Choice Response -->
                   <div
-                    th:if="${question.type == 'multiple_choice' or question.type == 'choice' or question.type == 'checkbox'}"
+                    th:if="${question.type == 'multiple_choice' or question.type == 'choice' or question.type == 'checkbox' or question.type == 'multiple-choice'}"
                     class="response-content"
                   >
-                    <div th:if="${question.response != null}">
+                    <div th:if="${question.response != null and !#strings.isEmpty(question.response.toString())}">
                       <!-- Handle array responses -->
-                      <div
-                        th:if="${question.response.getClass().isArray() or question.response instanceof java.util.List}"
-                      >
-                        <div
-                          th:each="resp : ${question.response}"
+                      <div th:if="${#lists.size(question.response) > 0 or #arrays.length(question.response) > 0}">
+                        <div 
+                          th:each="resp : ${#lists.size(question.response) > 0 ? question.response : #arrays.asList(question.response)}" 
                           class="selected-choice"
-                          style="
-                            display: inline-block;
-                            margin: 2px;
-                            padding: 2px 6px;
-                          "
+                          style="display: inline-block; margin: 2px; padding: 2px 6px;"
                         >
                           <span th:text="${resp}"></span>
-                          <span class="ms-1">✓</span>
+                          <span style="display: inline-block; width: 16px; height: 16px; background: #27ae60; border-radius: 2px; margin-left: 4px; position: relative;">
+                            <span style="position: absolute; top: 1px; left: 5px; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg);"></span>
+                          </span>
                         </div>
                       </div>
+                      
                       <!-- Handle single string response -->
-                      <div
-                        th:if="${!question.response.getClass().isArray() and !(question.response instanceof java.util.List)}"
-                        class="selected-choice"
-                        style="
-                          display: inline-block;
-                          margin: 2px;
-                          padding: 2px 6px;
-                        "
-                      >
+                      <div th:if="${(question.response != null) and (question.response.getClass().getSimpleName() == 'String') and (question.response != '')}" 
+                           class="selected-choice"
+                           style="display: inline-block; margin: 2px; padding: 2px 6px;">
                         <span th:text="${question.response}"></span>
                       </div>
                     </div>
-                    <span
-                      th:if="${question.response == null or (question.response.getClass().isArray() and #arrays.length(question.response) == 0) or (question.response instanceof java.util.List and question.response.isEmpty())}"
-                      class="text-muted"
-                    >
+                    
+                    <!-- No selection case -->
+                    <span th:if="${question.response == null or #strings.isEmpty(question.response.toString()) or 
+                                 (#lists.size(question.response) == 0 and #arrays.length(question.response) == 0)}" 
+                          class="text-muted">
                       No selection
                     </span>
-                    <div
-                      th:if="${question.multipleAnswer}"
-                      class="small text-muted mt-1"
-                    >
-                      <em>Multiple selections allowed</em>
-                    </div>
                   </div>
 
                   <!-- Signature Response (simplified) -->
                   <div
-                    th:if="${question.type == 'signature'}"
+                    th:if="${question != null and question.type != null and question.type.toString() == 'signature'}"
                     class="signature"
                   >
                     <div class="d-flex align-items-center">
@@ -617,16 +607,15 @@
                     </div>
                   </div>
 
-                  <!-- File Attachment -->
+                  <!-- File Response -->
                   <div
-                    th:if="${question.type == 'file' and question.response != null}"
-                    class="mt-2"
+                    th:if="${question != null and question.type != null and question.type.toString() == 'file' and question.response != null and (question.response.getClass().isArray() or question.response instanceof java.util.List)}"
+                    class="file-response"
                   >
                     <div class="d-flex align-items-center">
                       <i class="bi bi-paperclip me-2"></i>
                       <span
-                        th:if="${question.response.getClass().isArray() or question.response instanceof java.util.List}"
-                      >
+                        th:if="${question.response.getClass().isArray() or question.response instanceof java.util.List}">
                         <span th:each="file, stat : ${question.response}">
                           <a
                             th:if="${file.url != null}"
