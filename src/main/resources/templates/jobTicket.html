@@ -376,15 +376,25 @@
             </div>
             <div style="font-size: 0.9rem">
               <strong>Work Order Number:</strong>
-              <span th:text="${jobTicket.answers.metadata.additional.workOrder.workOrderNum}" style="margin-left: 0.5rem"
-              >N/A</span
-              >
+              <span th:if="${jobTicket?.answers?.metadata?.additional?.workOrder?.workOrderNum != null}" 
+                    th:text="${jobTicket.answers.metadata.additional.workOrder.workOrderNum}" 
+                    style="margin-left: 0.5rem">
+              </span>
+              <span th:if="${jobTicket?.answers?.metadata?.additional?.workOrder?.workOrderNum == null}" 
+                    style="margin-left: 0.5rem; color: #999;">
+                N/A
+              </span>
             </div>
             <div style="font-size: 0.9rem">
               <strong>Work Order Title:</strong>
-              <span th:text="${jobTicket.answers.metadata.additional.workOrder.title}" style="margin-left: 0.5rem"
-              >N/A</span
-              >
+              <span th:if="${jobTicket?.answers?.metadata?.additional?.workOrder?.title != null}" 
+                    th:text="${jobTicket.answers.metadata.additional.workOrder.title}" 
+                    style="margin-left: 0.5rem">
+              </span>
+              <span th:if="${jobTicket?.answers?.metadata?.additional?.workOrder?.title == null}" 
+                    style="margin-left: 0.5rem; color: #999;">
+                N/A
+              </span>
             </div>
           </div>
         </div>
