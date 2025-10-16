@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
-@Retry(name = "pdfGeneration", fallbackMethod = "generatePdfFallback")
 public class PdfGenerationService {
 
     private static final Logger log = LoggerFactory.getLogger(PdfGenerationService.class);
@@ -71,20 +70,17 @@ public class PdfGenerationService {
     }
 
     /**
-     * Generates a PDF document from a Job Ticket
-     */
-    /**
-     * Generates a PDF document from an HTML string
+     * Generates a PDF document from an HTML string with retry capability
      *
      * @param html The HTML content to convert to PDF
      * @return byte array containing the generated PDF
-     * @throws PdfGenerationException if there's an error generating the PDF
+     * @throws PdfGenerationException if there's an error generating the PDF after all retry attempts
      */
+    @Retry(name = "pdfGeneration", fallbackMethod = "generateJobTicketPdfWithImagesFallback")
     public byte[] generateJobTicketPdfWithImages(String html) {
         log.debug("Generating PDF from HTML content");
-        
         if (!StringUtils.hasText(html)) {
-            throw new IllegalArgumentException("HTML content cannot be null or empty");
+            throw new IllegalArgumentException("The content cannot be null or empty");
         }
 
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
@@ -101,7 +97,6 @@ public class PdfGenerationService {
         }
     }
 
-    @Retry(name = "pdfGeneration", fallbackMethod = "generateJobTicketPdfFallback")
     public byte[] generateJobTicketPdf(JobTicket jobTicket) {
         log.info("Generating PDF for job ticket: {}", jobTicket != null ? jobTicket.getId() : "null");
 
@@ -140,11 +135,15 @@ public class PdfGenerationService {
     }
 
     /**
-     * Fallback method when retries are exhausted
+     * Fallback method when retries are exhausted for generateJobTicketPdfWithImages
+     * @param html The HTML content that failed to be converted to PDF
+     * @param ex The exception that caused the failure
+     * @return This method always throws an exception
+     * @throws PdfGenerationException with details about the failure after all retry attempts
      */
     @SuppressWarnings("unused")
-    public byte[] generateJobTicketPdfFallback(JobTicket jobTicket, Exception ex) {
-        log.error("All retry attempts failed for job ticket: {}", jobTicket != null ? jobTicket.getId() : "null", ex);
-        throw new PdfGenerationException("Failed to generate Job Ticket PDF after multiple attempts: " + ex.getMessage(), ex);
+    public byte[] generateJobTicketPdfWithImagesFallback(String html, Exception ex) {
+        log.error("All retry attempts failed for HTML to PDF generation", ex);
+        throw new PdfGenerationException("Failed to generate PDF from HTML after multiple attempts: " + ex.getMessage(), ex);
     }
 }
