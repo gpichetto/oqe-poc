@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 
 @Validated
 @RestController
@@ -41,6 +42,7 @@ public class PdfController {
     private static final Logger log = LoggerFactory.getLogger(PdfController.class);
     private static final String PDF_FILENAME = "checklist.pdf";
     private static final String JOB_TICKET_PDF_FILENAME = "job-ticket.pdf";
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final ChecklistItemValidator checklistItemValidator;
     private final FileUploadValidator fileUploadValidator;
@@ -68,7 +70,7 @@ public class PdfController {
         log.warn("Validation errors found: {}", bindingResult.getAllErrors());
         
         Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now());
+        response.put("timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER));
         response.put("status", HttpStatus.BAD_REQUEST.value());
         response.put("error", "Validation Error");
         
@@ -105,7 +107,7 @@ public class PdfController {
             log.warn("Null checklist items provided");
             return ResponseEntity.badRequest().body(
                     Map.of(
-                            "timestamp", LocalDateTime.now(),
+                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                             "status", HttpStatus.BAD_REQUEST.value(),
                             "error", "Bad Request",
                             "message", "Request body is required"
@@ -118,7 +120,7 @@ public class PdfController {
             log.warn("Empty checklist items provided");
             return ResponseEntity.badRequest().body(
                     Map.of(
-                            "timestamp", LocalDateTime.now(),
+                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                             "status", HttpStatus.BAD_REQUEST.value(),
                             "error", "Bad Request",
                             "message", "At least one checklist item is required"
@@ -165,7 +167,7 @@ public class PdfController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(Map.of(
-                            "timestamp", LocalDateTime.now(),
+                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                             "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
                             "error", "PDF Generation Failed",
                             "message", "Failed to generate PDF: " + e.getMessage()
@@ -194,7 +196,7 @@ public class PdfController {
             log.warn("Null job ticket provided");
             return ResponseEntity.badRequest().body(
                 Map.of(
-                    "timestamp", LocalDateTime.now(),
+                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.BAD_REQUEST.value(),
                     "error", "Bad Request",
                     "message", "Job ticket data is required"
@@ -234,7 +236,7 @@ public class PdfController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
-                    "timestamp", LocalDateTime.now(),
+                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
                     "error", "PDF Generation Failed",
                     "message", "Failed to generate Job Ticket PDF: " + e.getMessage()
@@ -244,7 +246,7 @@ public class PdfController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
-                    "timestamp", LocalDateTime.now(),
+                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
                     "error", "Internal Server Error",
                     "message", "An unexpected error occurred: " + e.getMessage()
@@ -282,7 +284,7 @@ public class PdfController {
             return ResponseEntity.badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
-                    "timestamp", LocalDateTime.now(),
+                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.BAD_REQUEST.value(),
                     "error", "Bad Request",
                     "message", "Missing required file part 'jsonFile'"
@@ -301,7 +303,7 @@ public class PdfController {
             return ResponseEntity.badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
-                    "timestamp", LocalDateTime.now(),
+                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.BAD_REQUEST.value(),
                     "error", "Bad Request",
                     "message", "Maximum 25 files are allowed per request (including the JSON file)"
@@ -386,7 +388,7 @@ public class PdfController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
-                    "timestamp", LocalDateTime.now(),
+                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.BAD_REQUEST.value(),
                     "error", "Invalid Request",
                     "message", "Error processing uploaded files: " + e.getMessage(),
@@ -397,7 +399,7 @@ public class PdfController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
-                    "timestamp", LocalDateTime.now(),
+                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
                     "error", "PDF Generation Failed",
                     "message", "Failed to generate PDF: " + e.getMessage(),
@@ -411,7 +413,7 @@ public class PdfController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
-                    "timestamp", LocalDateTime.now(),
+                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
                     "error", "Internal Server Error",
                     "message", "An unexpected error occurred: " + e.getMessage()
