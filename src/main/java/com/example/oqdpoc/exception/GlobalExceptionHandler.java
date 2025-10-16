@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.http.HttpHeaders;
@@ -18,7 +19,7 @@ import java.util.Map;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-@ControllerAdvice
+@RestControllerAdvice
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
@@ -79,7 +80,16 @@ public class GlobalExceptionHandler {
         body.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         body.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
         body.put("error", "Internal Server Error");
-        body.put("message", ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred");
+        
+        // Handle template parsing errors specifically
+        String errorMessage = ex.getMessage();
+        if (errorMessage != null && errorMessage.contains("template parsing")) {
+            errorMessage = "Error processing template: " + 
+                errorMessage.substring(0, Math.min(errorMessage.length(), 200));
+        } else {
+            errorMessage = ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred";
+        }
+        body.put("message", errorMessage);
         
         // Add more details in development
         if (log.isDebugEnabled()) {
@@ -87,10 +97,14 @@ public class GlobalExceptionHandler {
                 body.put("cause", ex.getCause().getMessage());
             }
             body.put("exception", ex.getClass().getName());
-            body.put("stackTrace", Arrays.stream(ex.getStackTrace())
-                .map(StackTraceElement::toString)
-                .collect(Collectors.toList()));
+            if (ex.getStackTrace() != null && ex.getStackTrace().length > 0) {
+                body.put("stackTrace", Arrays.stream(ex.getStackTrace())
+                    .limit(10) // Limit stack trace size
+                    .map(StackTraceElement::toString)
+                    .collect(Collectors.toList()));
+            }
         }
+        
         if (request.getUserPrincipal() != null && request.isUserInRole("ADMIN")) {
             body.put("details", ex.getMessage());
         }
