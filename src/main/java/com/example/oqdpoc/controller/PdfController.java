@@ -1,5 +1,6 @@
 package com.example.oqdpoc.controller;
 
+import com.example.oqdpoc.config.FileUploadProperties;
 import com.example.oqdpoc.exception.PdfGenerationException;
 import com.example.oqdpoc.model.ChecklistItem;
 import com.example.oqdpoc.model.jobticket.JobTicket;
@@ -47,16 +48,19 @@ public class PdfController {
     private final PdfGenerationService pdfGenerationService;
     private final TemplateEngine templateEngine;
     private final ObjectMapper objectMapper;
+    private final FileUploadProperties fileUploadProperties;
 
     public PdfController(
             ChecklistItemValidator checklistItemValidator,
             PdfGenerationService pdfGenerationService,
             TemplateEngine templateEngine,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            FileUploadProperties fileUploadProperties) {
         this.checklistItemValidator = checklistItemValidator;
         this.pdfGenerationService = pdfGenerationService;
         this.templateEngine = templateEngine;
         this.objectMapper = objectMapper;
+        this.fileUploadProperties = fileUploadProperties;
     }
 
     /**
@@ -269,11 +273,6 @@ public class PdfController {
         log.debug("Image files count: {}", imageFiles != null ? imageFiles.size() : 0);
         log.debug("Accept header: {}", acceptHeader);
         
-        log.info("Received request to generate job ticket PDF");
-        log.debug("JSON file: {}, size: {} bytes", jsonFile.getOriginalFilename(), jsonFile.getSize());
-        log.debug("Image files count: {}", imageFiles != null ? imageFiles.size() : 0);
-        log.debug("Accept header: {}", acceptHeader);
-        
         // Check if the required jsonFile is present and not empty
         if (jsonFile == null || jsonFile.isEmpty()) {
             log.warn("Missing required file part 'jsonFile'");
@@ -287,22 +286,24 @@ public class PdfController {
                 ));
         }
         
-        // Combine all files for validation (including the required jsonFile)
-        List<MultipartFile> allFiles = new ArrayList<>();
-        allFiles.add(jsonFile);
-        if (imageFiles != null) {
-            allFiles.addAll(imageFiles);
-        }
+        // Validate number of image files doesn't exceed the configured limit
+        int maxImageFiles = fileUploadProperties.getMaxFiles();
+        int imageCount = imageFiles != null ? imageFiles.size() : 0;
         
-        // Validate total number of files doesn't exceed the limit
-        if (allFiles.size() > 25) {
+        if (imageCount > maxImageFiles) {
+            log.warn("Number of attached image files ({}) exceeds the maximum allowed limit of {}",
+                imageCount, maxImageFiles);
+                
             return ResponseEntity.badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
                     "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.BAD_REQUEST.value(),
                     "error", "Bad Request",
-                    "message", "Maximum 25 files are allowed per request (including the JSON file)"
+                    "message", String.format(
+                        "Maximum of %d attached image files allowed per request",
+                        maxImageFiles
+                    )
                 ));
         }
         

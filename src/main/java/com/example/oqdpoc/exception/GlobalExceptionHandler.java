@@ -74,8 +74,8 @@ public class GlobalExceptionHandler {
         // Show both file size limits in the error message
         body.put("message", String.format(
             "File upload failed. Maximum file size: %s or Maximum total request size: %s exceeded",
-            formatDataSize(fileUploadProperties.getMaxFileSize()),
-            formatDataSize(fileUploadProperties.getMaxRequestSize())
+            formatDataSize(fileUploadProperties.getMultipart().getMaxFileSize()),
+            formatDataSize(fileUploadProperties.getMultipart().getMaxRequestSize())
         ));
         
         if (log.isDebugEnabled()) {
