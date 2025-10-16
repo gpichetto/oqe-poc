@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.http.HttpHeaders;
+import com.example.oqdpoc.config.FileUploadProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -18,10 +20,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import org.springframework.util.unit.DataSize;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    
+    private final FileUploadProperties fileUploadProperties;
+    
+    @Autowired
+    public GlobalExceptionHandler(FileUploadProperties fileUploadProperties) {
+        this.fileUploadProperties = fileUploadProperties;
+    }
 
     @ExceptionHandler(PdfGenerationException.class)
     public ResponseEntity<Map<String, Object>> handlePdfGenerationException(
@@ -60,7 +70,13 @@ public class GlobalExceptionHandler {
         body.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         body.put("status", HttpStatus.PAYLOAD_TOO_LARGE.value());
         body.put("error", "File Size Exceeded");
-        body.put("message", "File size exceeds the maximum allowed limit of 2KB");
+        
+        // Show both file size limits in the error message
+        body.put("message", String.format(
+            "File upload failed. Maximum file size: %s or Maximum total request size: %s exceeded",
+            formatDataSize(fileUploadProperties.getMaxFileSize()),
+            formatDataSize(fileUploadProperties.getMaxRequestSize())
+        ));
         
         if (log.isDebugEnabled()) {
             body.put("exception", ex.getClass().getName());
@@ -70,6 +86,16 @@ public class GlobalExceptionHandler {
         headers.setContentType(MediaType.APPLICATION_JSON);
         
         return new ResponseEntity<>(body, headers, HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+    
+    private String formatDataSize(DataSize size) {
+        if (size.toMegabytes() >= 1) {
+            return size.toMegabytes() + "MB";
+        } else if (size.toKilobytes() >= 1) {
+            return size.toKilobytes() + "KB";
+        } else {
+            return size.toBytes() + " bytes";
+        }
     }
     
     @ExceptionHandler(Exception.class)

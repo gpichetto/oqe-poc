@@ -5,7 +5,6 @@ import com.example.oqdpoc.model.ChecklistItem;
 import com.example.oqdpoc.model.jobticket.JobTicket;
 import com.example.oqdpoc.service.PdfGenerationService;
 import com.example.oqdpoc.validator.ChecklistItemValidator;
-import com.example.oqdpoc.validator.FileUploadValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,19 +44,16 @@ public class PdfController {
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     private final ChecklistItemValidator checklistItemValidator;
-    private final FileUploadValidator fileUploadValidator;
     private final PdfGenerationService pdfGenerationService;
     private final TemplateEngine templateEngine;
     private final ObjectMapper objectMapper;
 
     public PdfController(
             ChecklistItemValidator checklistItemValidator,
-            FileUploadValidator fileUploadValidator,
             PdfGenerationService pdfGenerationService,
             TemplateEngine templateEngine,
             ObjectMapper objectMapper) {
         this.checklistItemValidator = checklistItemValidator;
-        this.fileUploadValidator = fileUploadValidator;
         this.pdfGenerationService = pdfGenerationService;
         this.templateEngine = templateEngine;
         this.objectMapper = objectMapper;
