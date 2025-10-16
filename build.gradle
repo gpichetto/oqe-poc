@@ -31,10 +31,14 @@ dependencies {
     // Validation
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     
-    // Resilience4j for retry and circuit breaker
+    // Resilience4j for resilience patterns
     implementation 'org.springframework.boot:spring-boot-starter-aop'
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
     implementation 'io.github.resilience4j:resilience4j-retry:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-ratelimiter:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-annotations:2.1.0'
+    implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'
     
     // Lombok
     compileOnly 'org.projectlombok:lombok'
