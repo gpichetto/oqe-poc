@@ -28,6 +28,9 @@ dependencies {
     // JSON Processing
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     
+    // Validation
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    
     // Resilience4j for retry and circuit breaker
     implementation 'org.springframework.boot:spring-boot-starter-aop'
     implementation 'io.github.resilience4j:resilience4j-spring-boot3:2.1.0'

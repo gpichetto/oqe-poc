@@ -36,8 +36,13 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                                   HttpServletResponse response, 
                                   FilterChain filterChain) throws ServletException, IOException {
         
-        // Skip authentication for preflight requests
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+        String requestUri = request.getRequestURI();
+        log.debug("Processing request to: {}", requestUri);
+        
+        // Skip authentication for preflight requests and PDF endpoints
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod()) || 
+            (requestUri != null && requestUri.startsWith("/api/pdf/"))) {
+            log.debug("Skipping authentication for: {}", requestUri);
             filterChain.doFilter(request, response);
             return;
         }
@@ -65,6 +70,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
             
             // Use the wrapped request that allows multiple reads
+            log.debug("Authentication successful, proceeding with filter chain");
             filterChain.doFilter(cachedBodyHttpServletRequest, response);
         } catch (Exception e) {
             log.error("Error processing API key authentication", e);

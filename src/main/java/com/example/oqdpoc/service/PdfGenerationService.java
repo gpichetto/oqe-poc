@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -72,6 +73,34 @@ public class PdfGenerationService {
     /**
      * Generates a PDF document from a Job Ticket
      */
+    /**
+     * Generates a PDF document from an HTML string
+     *
+     * @param html The HTML content to convert to PDF
+     * @return byte array containing the generated PDF
+     * @throws PdfGenerationException if there's an error generating the PDF
+     */
+    public byte[] generateJobTicketPdfWithImages(String html) {
+        log.debug("Generating PDF from HTML content");
+        
+        if (!StringUtils.hasText(html)) {
+            throw new IllegalArgumentException("HTML content cannot be null or empty");
+        }
+
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            PdfRendererBuilder builder = new PdfRendererBuilder()
+                    .withHtmlContent(html, "")
+                    .toStream(outputStream);
+            
+            builder.run();
+            log.debug("Successfully generated PDF with {} bytes", outputStream.size());
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            log.error("Error generating PDF from HTML: {}", e.getMessage());
+            throw new PdfGenerationException("Failed to generate PDF from HTML: " + e.getMessage(), e);
+        }
+    }
+
     @Retry(name = "pdfGeneration", fallbackMethod = "generateJobTicketPdfFallback")
     public byte[] generateJobTicketPdf(JobTicket jobTicket) {
         log.info("Generating PDF for job ticket: {}", jobTicket != null ? jobTicket.getId() : "null");

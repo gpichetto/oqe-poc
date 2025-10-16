@@ -48,10 +48,14 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow CORS preflight
+                .requestMatchers("/api/pdf/**").permitAll() // Allow PDF endpoints without authentication
                 .anyRequest().authenticated()
             )
-            // Add the API key filter
+            // Add the API key filter but exclude PDF endpoints
             .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
+            .securityMatcher(
+                request -> !request.getRequestURI().startsWith("/api/pdf/")
+            )
             // Handle authentication exceptions
             .exceptionHandling(exception -> {
                 exception.authenticationEntryPoint((request, response, authException) -> {
