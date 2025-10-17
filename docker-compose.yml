@@ -8,18 +8,21 @@ services:
     container_name: pdf-service
     hostname: pdf-service
     networks:
-      - your-network-name  # Replace with your existing network name
+      - pdf-network
     ports:
-      - "8081:8085"
+      - "8081:8085"  # Map host port 8081 to container port 8085
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_PROFILES_ACTIVE=dev  # Changed to dev for development
+      - SERVER_PORT=8085  # Explicitly set the server port
       - APP_API_KEY=${APP_API_KEY:-default-secure-key}
-      # Add any other environment variables your services share
+      - MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED=true
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS=always
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8085/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 60s
     restart: unless-stopped
     # Uncomment and adjust for production
     # deploy:
@@ -28,7 +31,6 @@ services:
     #       cpus: '1'
     #       memory: 1G
 
-# Uncomment and adjust if you need to define a network
-# networks:
-#   your-network-name:
-#     external: true
+networks:
+  pdf-network:
+    driver: bridge

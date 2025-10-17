@@ -6,6 +6,7 @@ import com.example.oqdpoc.model.ChecklistItem;
 import com.example.oqdpoc.model.jobticket.JobTicket;
 import com.example.oqdpoc.service.PdfGenerationService;
 import com.example.oqdpoc.validator.ChecklistItemValidator;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -264,25 +265,22 @@ public class PdfController {
         produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> renderJobTicketWithImages(
-            @RequestPart("jsonFile") MultipartFile jsonFile,
+            @RequestPart("jobTicket") String jobTicketJson,
             @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles,
             @RequestHeader(value = "Accept", required = false) String acceptHeader) {
         
         log.info("Received request to generate job ticket PDF");
-        log.debug("JSON file: {}, size: {} bytes", jsonFile.getOriginalFilename(), jsonFile.getSize());
-        log.debug("Image files count: {}", imageFiles != null ? imageFiles.size() : 0);
-        log.debug("Accept header: {}", acceptHeader);
-        
-        // Check if the required jsonFile is present and not empty
-        if (jsonFile == null || jsonFile.isEmpty()) {
-            log.warn("Missing required file part 'jsonFile'");
+
+        // Check if the jobTicket JSON is present and not empty
+        if (!StringUtils.hasText(jobTicketJson)) {
+            log.warn("Missing or empty required part 'jobTicket'");
             return ResponseEntity.badRequest()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(Map.of(
                     "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
                     "status", HttpStatus.BAD_REQUEST.value(),
                     "error", "Bad Request",
-                    "message", "Missing required file part 'jsonFile'"
+                    "message", "Missing or empty required part 'jobTicket'"
                 ));
         }
         
@@ -310,8 +308,21 @@ public class PdfController {
         try {
             log.info("Received request to generate job ticket PDF");
             
-            // 1. Parse JSON file
-            JobTicket jobTicket = objectMapper.readValue(jsonFile.getBytes(), JobTicket.class);
+            // 1. Parse JSON payload
+            JobTicket jobTicket;
+            try {
+                jobTicket = objectMapper.readValue(jobTicketJson, JobTicket.class);
+            } catch (JsonProcessingException e) {
+                log.error("Failed to parse job ticket JSON: {}", e.getMessage());
+                return ResponseEntity.badRequest()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                        "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
+                        "status", HttpStatus.BAD_REQUEST.value(),
+                        "error", "Bad Request",
+                        "message", "Invalid JSON in jobTicket: " + e.getMessage()
+                    ));
+            }
             
             // 2. Process images (if any)
             List<String> base64Images = new ArrayList<>();
@@ -379,18 +390,6 @@ public class PdfController {
                 log.error("Error creating response: {}", e.getMessage(), e);
                 throw new RuntimeException("Failed to create response: " + e.getMessage(), e);
             }
-            
-        } catch (IOException e) {
-            log.error("Error processing uploaded files: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of(
-                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                    "status", HttpStatus.BAD_REQUEST.value(),
-                    "error", "Invalid Request",
-                    "message", "Error processing uploaded files: " + e.getMessage(),
-                    "details", e.toString()
-                ));
         } catch (PdfGenerationException e) {
             log.error("Error generating PDF: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
