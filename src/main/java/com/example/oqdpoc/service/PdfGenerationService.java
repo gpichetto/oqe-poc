@@ -7,6 +7,8 @@ import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import io.github.resilience4j.retry.annotation.Retry;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.thymeleaf.TemplateEngine;
@@ -17,6 +19,7 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+@CacheConfig(cacheNames = "jobTicketTemplates")
 public class PdfGenerationService {
 
     private static final Logger log = LoggerFactory.getLogger(PdfGenerationService.class);
@@ -24,6 +27,7 @@ public class PdfGenerationService {
 
     private static final String CHECKLIST_TEMPLATE = "checklist";
     private static final String JOB_TICKET_TEMPLATE = "jobTicket";
+    private static final String CACHE_KEY_PREFIX = "template::";
 
     public PdfGenerationService(TemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
@@ -37,21 +41,25 @@ public class PdfGenerationService {
      * @return byte array containing the generated PDF
      * @throws PdfGenerationException if there's an error generating the PDF
      */
-    public byte[] generatePdf(List<ChecklistItem> checklistItems) {
+    @Cacheable(key = "#root.target.CACHE_KEY_PREFIX + #root.target.CHECKLIST_TEMPLATE + '::' + T(java.util.Objects).hash(#checklistItems)")
+    public String processChecklistTemplate(List<ChecklistItem> checklistItems) {
         Objects.requireNonNull(checklistItems, "Checklist items cannot be null");
 
         if (checklistItems.isEmpty()) {
             throw new IllegalArgumentException("Checklist items cannot be empty");
         }
 
+        log.debug("Processing checklist template for {} items", checklistItems.size());
+        Context context = new Context();
+        context.setVariable("items", checklistItems);
+        return templateEngine.process(CHECKLIST_TEMPLATE, context);
+    }
+
+    public byte[] generatePdf(List<ChecklistItem> checklistItems) {
         log.debug("Starting PDF generation for {} items", checklistItems.size());
-
+        String html = processChecklistTemplate(checklistItems);
+        
         try {
-            // Process the template with Thymeleaf
-            Context context = new Context();
-            context.setVariable("items", checklistItems);
-
-            String html = templateEngine.process(CHECKLIST_TEMPLATE, context);
 
             // Convert HTML to PDF
             try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
@@ -97,25 +105,30 @@ public class PdfGenerationService {
         }
     }
 
-    public byte[] generateJobTicketPdf(JobTicket jobTicket) {
-        log.info("Generating PDF for job ticket: {}", jobTicket != null ? jobTicket.getId() : "null");
-
-        // Validate job ticket
+    @Cacheable(key = "#root.target.CACHE_KEY_PREFIX + #root.target.JOB_TICKET_TEMPLATE + '::' + #jobTicket.id")
+    public String processJobTicketTemplate(JobTicket jobTicket) {
+        log.info("Processing job ticket template for ID: {}", jobTicket != null ? jobTicket.getId() : "null");
+        
         if (jobTicket == null || jobTicket.getId() == null) {
             throw new IllegalArgumentException("Job ticket and its ID must not be null");
         }
+        
+        Context context = new Context();
+        context.setVariable("jobTicket", jobTicket);
+        
+        // Set the logo URL with full file path
+        String logoPath = new java.io.File("src/main/resources/static/images/thales-logo.png").getAbsolutePath();
+        context.setVariable("logoUrl", "file:" + logoPath);
+        
+        return templateEngine.process(JOB_TICKET_TEMPLATE, context);
+    }
 
+    public byte[] generateJobTicketPdf(JobTicket jobTicket) {
+        log.info("Generating PDF for job ticket: {}", jobTicket != null ? jobTicket.getId() : "null");
+        
         try {
-            // Create and populate the Thymeleaf context
-            Context context = new Context();
-            context.setVariable("jobTicket", jobTicket);
-
-            // Set the logo URL with full file path
-            String logoPath = new java.io.File("src/main/resources/static/images/thales-logo.png").getAbsolutePath();
-            context.setVariable("logoUrl", "file:" + logoPath);
-
-            // Process the template
-            String html = templateEngine.process(JOB_TICKET_TEMPLATE, context);
+            // Process the template (will use cache if available)
+            String html = processJobTicketTemplate(jobTicket);
 
             // Convert HTML to PDF
             try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
