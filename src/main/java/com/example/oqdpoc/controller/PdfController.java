@@ -91,6 +91,48 @@ public class PdfController {
             ));
     }
 
+    /**
+     * Creates a PDF response based on the accept header
+     * 
+     * @param pdfBytes The PDF content as bytes
+     * @param base64Images List of base64-encoded images
+     * @param acceptHeader The Accept header from the request
+     * @return ResponseEntity containing either the PDF or a JSON response
+     */
+    private ResponseEntity<?> createPdfResponse(byte[] pdfBytes, List<String> base64Images, String acceptHeader) {
+        try {
+            log.debug("Preparing response. Accept header: {}", acceptHeader);
+            boolean preferJson = StringUtils.hasText(acceptHeader) && 
+                              acceptHeader.contains(MediaType.APPLICATION_JSON_VALUE);
+            
+            if (preferJson) {
+                log.debug("Creating JSON response with base64-encoded PDF");
+                String base64Pdf = Base64.getEncoder().encodeToString(pdfBytes);
+                Map<String, Object> response = Map.of(
+                    "status", "success",
+                    "imageCount", base64Images.size(),
+                    "pdfBase64", base64Pdf
+                );
+                log.debug("JSON response prepared successfully");
+                return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(response);
+            } else {
+                log.debug("Creating PDF response");
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_PDF);
+                headers.setContentDispositionFormData("inline", "job-ticket.pdf");
+                headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
+                headers.setContentLength(pdfBytes.length);
+                log.debug("Response headers set. Content-Length: {}", pdfBytes.length);
+                return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+            }
+        } catch (Exception e) {
+            log.error("Error creating response: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to create response: " + e.getMessage(), e);
+        }
+    }
+
     private ResponseEntity<Map<String, Object>> createValidationErrorResponse(BindingResult bindingResult) {
         log.warn("Validation errors found: {}", bindingResult.getAllErrors());
         
@@ -351,37 +393,7 @@ public class PdfController {
             byte[] pdfBytes = pdfGenerationService.generateJobTicketPdfWithImages(html);
             
             // 5. Return response
-            try {
-                log.debug("Preparing response. Accept header: {}", acceptHeader);
-                boolean preferJson = StringUtils.hasText(acceptHeader) && 
-                                  acceptHeader.contains(MediaType.APPLICATION_JSON_VALUE);
-                
-                if (preferJson) {
-                    log.debug("Creating JSON response with base64-encoded PDF");
-                    String base64Pdf = Base64.getEncoder().encodeToString(pdfBytes);
-                    Map<String, Object> response = Map.of(
-                        "status", "success",
-                        "imageCount", base64Images.size(),
-                        "pdfBase64", base64Pdf
-                    );
-                    log.debug("JSON response prepared successfully");
-                    return ResponseEntity.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(response);
-                } else {
-                    log.debug("Creating PDF response");
-                    HttpHeaders headers = new HttpHeaders();
-                    headers.setContentType(MediaType.APPLICATION_PDF);
-                    headers.setContentDispositionFormData("inline", "job-ticket.pdf");
-                    headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
-                    headers.setContentLength(pdfBytes.length);
-                    log.debug("Response headers set. Content-Length: {}", pdfBytes.length);
-                    return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
-                }
-            } catch (Exception e) {
-                log.error("Error creating response: {}", e.getMessage(), e);
-                throw new RuntimeException("Failed to create response: " + e.getMessage(), e);
-            }
+            return createPdfResponse(pdfBytes, base64Images, acceptHeader);
         } catch (PdfGenerationException e) {
             log.error("Error generating PDF: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
