@@ -6,6 +6,8 @@ import com.example.oqdpoc.model.ChecklistItem;
 import com.example.oqdpoc.model.jobticket.JobTicket;
 import com.example.oqdpoc.service.PdfGenerationService;
 import com.example.oqdpoc.validator.ChecklistItemValidator;
+import com.example.oqdpoc.validator.FileTypeValidator;
+import com.example.oqdpoc.exception.FileTypeValidationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -50,23 +52,37 @@ public class PdfController {
     private final TemplateEngine templateEngine;
     private final ObjectMapper objectMapper;
     private final FileUploadProperties fileUploadProperties;
+    private final FileTypeValidator fileTypeValidator;
 
     public PdfController(
             ChecklistItemValidator checklistItemValidator,
             PdfGenerationService pdfGenerationService,
             TemplateEngine templateEngine,
             ObjectMapper objectMapper,
-            FileUploadProperties fileUploadProperties) {
+            FileUploadProperties fileUploadProperties,
+            FileTypeValidator fileTypeValidator) {
         this.checklistItemValidator = checklistItemValidator;
         this.pdfGenerationService = pdfGenerationService;
         this.templateEngine = templateEngine;
         this.objectMapper = objectMapper;
         this.fileUploadProperties = fileUploadProperties;
+        this.fileTypeValidator = fileTypeValidator;
     }
 
     /**
      * Creates a standardized error response for validation errors
      */
+    private ResponseEntity<Map<String, Object>> createErrorResponse(String message) {
+        return ResponseEntity.badRequest()
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(Map.of(
+                "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
+                "status", HttpStatus.BAD_REQUEST.value(),
+                "error", "Bad Request",
+                "message", message
+            ));
+    }
+
     private ResponseEntity<Map<String, Object>> createValidationErrorResponse(BindingResult bindingResult) {
         log.warn("Validation errors found: {}", bindingResult.getAllErrors());
         
@@ -274,35 +290,17 @@ public class PdfController {
         // Check if the jobTicket JSON is present and not empty
         if (!StringUtils.hasText(jobTicketJson)) {
             log.warn("Missing or empty required part 'jobTicket'");
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of(
-                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                    "status", HttpStatus.BAD_REQUEST.value(),
-                    "error", "Bad Request",
-                    "message", "Missing or empty required part 'jobTicket'"
-                ));
+            return createErrorResponse("Missing or empty required part 'jobTicket'");
         }
         
-        // Validate number of image files doesn't exceed the configured limit
-        int maxImageFiles = fileUploadProperties.getMaxFiles();
-        int imageCount = imageFiles != null ? imageFiles.size() : 0;
-        
-        if (imageCount > maxImageFiles) {
-            log.warn("Number of attached image files ({}) exceeds the maximum allowed limit of {}",
-                imageCount, maxImageFiles);
-                
-            return ResponseEntity.badRequest()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of(
-                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                    "status", HttpStatus.BAD_REQUEST.value(),
-                    "error", "Bad Request",
-                    "message", String.format(
-                        "Maximum of %d attached image files allowed per request",
-                        maxImageFiles
-                    )
-                ));
+        // Validate image files if any are provided
+        if (imageFiles != null && !imageFiles.isEmpty()) {
+            try {
+                fileTypeValidator.validateImageFiles(imageFiles);
+            } catch (FileTypeValidationException e) {
+                log.warn("File validation failed: {}", e.getMessage());
+                return createErrorResponse(e.getMessage());
+            }
         }
         
         try {
@@ -314,27 +312,19 @@ public class PdfController {
                 jobTicket = objectMapper.readValue(jobTicketJson, JobTicket.class);
             } catch (JsonProcessingException e) {
                 log.error("Failed to parse job ticket JSON: {}", e.getMessage());
-                return ResponseEntity.badRequest()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of(
-                        "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                        "status", HttpStatus.BAD_REQUEST.value(),
-                        "error", "Bad Request",
-                        "message", "Invalid JSON in jobTicket: " + e.getMessage()
-                    ));
+                return createErrorResponse("Invalid JSON in jobTicket: " + e.getMessage());
             }
             
             // 2. Process images (if any)
             List<String> base64Images = new ArrayList<>();
             if (imageFiles != null && !imageFiles.isEmpty()) {
                 base64Images = imageFiles.stream()
+                    .filter(Objects::nonNull)
                     .filter(file -> !file.isEmpty())
                     .map(file -> {
                         try {
+                            // We can safely get content type here as it's already validated
                             String mimeType = file.getContentType();
-                            if (mimeType == null) {
-                                mimeType = "image/jpeg"; // default to jpeg if not specified
-                            }
                             String base64 = Base64.getEncoder().encodeToString(file.getBytes());
                             return "data:" + mimeType + ";base64," + base64;
                         } catch (IOException e) {
