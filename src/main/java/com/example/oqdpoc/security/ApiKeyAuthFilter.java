@@ -70,7 +70,14 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     }
     
     private boolean isPublicPath(String requestUri) {
-        return "/actuator/health".equals(requestUri);
+        return requestUri != null && (
+            "/actuator/health".equals(requestUri) ||
+            requestUri.startsWith("/v3/api-docs") ||
+            requestUri.startsWith("/swagger-ui") ||
+            requestUri.startsWith("/swagger-resources") ||
+            requestUri.startsWith("/webjars") ||
+            "/swagger-ui.html".equals(requestUri)
+        );
     }
     
     private void sendErrorResponse(HttpServletResponse response, String message) throws IOException {

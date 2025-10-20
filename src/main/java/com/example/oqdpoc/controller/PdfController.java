@@ -26,6 +26,8 @@ import org.springframework.validation.DataBinder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import io.swagger.v3.oas.annotations.Hidden;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import com.example.oqdpoc.config.Resilience4jConfig;
@@ -335,6 +337,7 @@ public class PdfController {
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Retry(name = Resilience4jConfig.PDF_GENERATION_RETRY)
     @RateLimiter(name = Resilience4jConfig.PDF_GENERATION_RATE_LIMITER)
+    @Hidden // Hide from default OpenAPI docs as we're using programmatic configuration
     public ResponseEntity<?> renderJobTicketWithImages(
             @RequestPart("jobTicket") String jobTicketJson,
             @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles,
