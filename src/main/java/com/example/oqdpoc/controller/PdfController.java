@@ -4,6 +4,7 @@ import com.example.oqdpoc.config.FileUploadProperties;
 import com.example.oqdpoc.exception.PdfGenerationException;
 import com.example.oqdpoc.model.ChecklistItem;
 import com.example.oqdpoc.model.jobticket.JobTicket;
+import com.example.oqdpoc.service.ImageProcessingService;
 import com.example.oqdpoc.service.PdfGenerationService;
 import com.example.oqdpoc.validator.ChecklistItemValidator;
 import com.example.oqdpoc.validator.FileTypeValidator;
@@ -34,6 +35,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +58,7 @@ public class PdfController {
     private final ObjectMapper objectMapper;
     private final FileUploadProperties fileUploadProperties;
     private final FileTypeValidator fileTypeValidator;
+    private final ImageProcessingService imageProcessingService;
 
     public PdfController(
             ChecklistItemValidator checklistItemValidator,
@@ -63,13 +66,15 @@ public class PdfController {
             TemplateEngine templateEngine,
             ObjectMapper objectMapper,
             FileUploadProperties fileUploadProperties,
-            FileTypeValidator fileTypeValidator) {
+            FileTypeValidator fileTypeValidator,
+            ImageProcessingService imageProcessingService) {
         this.checklistItemValidator = checklistItemValidator;
         this.pdfGenerationService = pdfGenerationService;
         this.templateEngine = templateEngine;
         this.objectMapper = objectMapper;
         this.fileUploadProperties = fileUploadProperties;
         this.fileTypeValidator = fileTypeValidator;
+        this.imageProcessingService = imageProcessingService;
     }
 
     /**
@@ -323,27 +328,16 @@ public class PdfController {
                 return createErrorResponse("Invalid JSON in jobTicket: " + e.getMessage());
             }
             
-            // 2. Process images (if any)
-            List<String> base64Images = new ArrayList<>();
+            // 2. Process images (if any) using the ImageProcessingService
+            List<String> base64Images = Collections.emptyList();
             if (imageFiles != null && !imageFiles.isEmpty()) {
-                base64Images = imageFiles.stream()
-                    .filter(Objects::nonNull)
-                    .filter(file -> !file.isEmpty())
-                    .map(file -> {
-                        try {
-                            // We can safely get content type here as it's already validated
-                            String mimeType = file.getContentType();
-                            String base64 = Base64.getEncoder().encodeToString(file.getBytes());
-                            return "data:" + mimeType + ";base64," + base64;
-                        } catch (IOException e) {
-                            log.warn("Error processing image file: {}. Error: {}", 
-                                   file.getOriginalFilename(), 
-                                   e.getMessage());
-                            return null;
-                        }
-                    })
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+                try {
+                    base64Images = imageProcessingService.processImages(imageFiles);
+                    log.debug("Successfully processed {} images", base64Images.size());
+                } catch (FileTypeValidationException e) {
+                    log.warn("Image validation failed: {}", e.getMessage());
+                    return createErrorResponse(e.getMessage());
+                }
             }
             
             // 3. Generate HTML with Thymeleaf
