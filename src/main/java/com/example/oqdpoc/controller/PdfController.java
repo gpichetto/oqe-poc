@@ -25,6 +25,9 @@ import org.springframework.validation.DataBinder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
+import com.example.oqdpoc.config.Resilience4jConfig;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -115,6 +118,7 @@ public class PdfController {
     @PostMapping(value = "/render", 
         produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
         consumes = MediaType.APPLICATION_JSON_VALUE)
+    @RateLimiter(name = Resilience4jConfig.PDF_GENERATION_RATE_LIMITER)
     public ResponseEntity<?> renderPdf(
             @RequestBody(required = false) List<ChecklistItem> checklistItems,
             @RequestHeader(value = "Accept", required = false) String acceptHeader) {
@@ -199,14 +203,16 @@ public class PdfController {
      * @param acceptHeader Optional Accept header to determine response format
      * @return ResponseEntity containing either the PDF bytes or a JSON response with base64-encoded PDF
      */
-    @PostMapping(value = "/render-job-ticket", 
+    @PostMapping(value = "/render-job-ticket",
         produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
         consumes = MediaType.APPLICATION_JSON_VALUE)
+    @RateLimiter(name = Resilience4jConfig.PDF_GENERATION_RATE_LIMITER)
     public ResponseEntity<?> renderJobTicket(
             @RequestBody JobTicket jobTicket,
             @RequestHeader(value = "Accept", required = false) String acceptHeader) {
         
         log.info("Received request to generate Job Ticket PDF for checklist ID: {}", 
+
             jobTicket != null ? jobTicket.getChecklistId() : "null");
         
         if (jobTicket == null) {
@@ -280,6 +286,8 @@ public class PdfController {
     @PostMapping(value = "/render-job-ticket-with-images", 
         produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
         consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Retry(name = Resilience4jConfig.PDF_GENERATION_RETRY)
+    @RateLimiter(name = Resilience4jConfig.PDF_GENERATION_RATE_LIMITER)
     public ResponseEntity<?> renderJobTicketWithImages(
             @RequestPart("jobTicket") String jobTicketJson,
             @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles,

@@ -26,7 +26,7 @@ public class Resilience4jConfig {
     // Rate limiter configuration
     public static final String PDF_GENERATION_RATE_LIMITER = "pdfGenerationRateLimiter";
     private static final int RATE_LIMIT_REFRESH_PERIOD_SECONDS = 60; // 1 minute window
-    private static final int RATE_LIMIT_FOR_PERIOD = 10; // 10 requests per window
+    private static final int RATE_LIMIT_FOR_PERIOD = 30; // 30 requests per window (increased from 10)
     private static final int RATE_LIMIT_TIMEOUT_MILLIS = 1000; // 1 second timeout
     
     // Circuit breaker configuration
