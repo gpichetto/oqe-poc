@@ -39,10 +39,9 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         String requestUri = request.getRequestURI();
         log.debug("Processing request to: {}", requestUri);
         
-        // Skip authentication for preflight requests and PDF endpoints
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod()) || 
-            (requestUri != null && requestUri.startsWith("/api/pdf/"))) {
-            log.debug("Skipping authentication for: {}", requestUri);
+        // Skip authentication for preflight requests
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            log.debug("Skipping authentication for preflight request: {}", requestUri);
             filterChain.doFilter(request, response);
             return;
         }

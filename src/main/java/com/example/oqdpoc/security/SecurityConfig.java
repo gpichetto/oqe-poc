@@ -13,7 +13,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.multipart.support.MultipartFilter;
+import org.springframework.core.Ordered;
 import org.springframework.web.cors.CorsConfiguration;
 import java.nio.charset.StandardCharsets;
 
@@ -26,6 +30,15 @@ public class SecurityConfig {
 
     @Value("${app.api.key}")
     private String apiKey;
+
+    // Register MultipartFilter with high precedence
+    @Bean
+    public FilterRegistrationBean<MultipartFilter> multipartFilterRegistration() {
+        FilterRegistrationBean<MultipartFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(new MultipartFilter());
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 1);
+        return registration;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -46,22 +59,16 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow CORS preflight
-                .requestMatchers("/api/pdf/**").permitAll() // Allow PDF endpoints without authentication
                 .anyRequest().authenticated()
             )
-            // Add the API key filter but exclude PDF endpoints
+            // Add API key filter before the default security filters
             .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
-            .securityMatcher(
-                request -> !request.getRequestURI().startsWith("/api/pdf/")
-            )
             // Handle authentication exceptions
             .exceptionHandling(exception -> {
                 exception.authenticationEntryPoint((request, response, authException) -> {
                     log.error("Authentication error: {}", authException.getMessage());
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setCharacterEncoding(StandardCharsets.UTF_8.name());
                     response.getWriter().write(
                         String.format(
