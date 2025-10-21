@@ -106,7 +106,7 @@ public class PdfGenerationService {
     }
 
     @Cacheable(key = "#root.target.CACHE_KEY_PREFIX + #root.target.JOB_TICKET_TEMPLATE + '::' + #jobTicket.id")
-    public String processJobTicketTemplate(JobTicket jobTicket) {
+    private String processJobTicketTemplate(JobTicket jobTicket) {
         log.info("Processing job ticket template for ID: {}", jobTicket != null ? jobTicket.getId() : "null");
         
         if (jobTicket == null || jobTicket.getId() == null) {
@@ -123,30 +123,6 @@ public class PdfGenerationService {
         return templateEngine.process(JOB_TICKET_TEMPLATE, context);
     }
     
-    /**
-     * Generates a PDF for a job ticket with embedded images
-     *
-     * @param jobTicket The job ticket data
-     * @param base64Images List of base64-encoded images to include in the PDF
-     * @return byte array containing the generated PDF
-     * @throws PdfGenerationException if there's an error generating the PDF
-     */
-    public byte[] generateJobTicketPdfWithImages(JobTicket jobTicket, List<String> base64Images) {
-        log.info("Generating PDF for job ticket with {} images", base64Images != null ? base64Images.size() : 0);
-        
-        try {
-            Context context = new Context();
-            context.setVariable("jobTicket", jobTicket);
-            context.setVariable("images", base64Images != null ? base64Images : List.of());
-            
-            String html = templateEngine.process("jobTicketWithImages", context);
-            return generateJobTicketPdfWithImages(html);
-        } catch (Exception e) {
-            log.error("Error generating job ticket PDF with images", e);
-            throw new PdfGenerationException("Failed to generate job ticket PDF with images: " + e.getMessage(), e);
-        }
-    }
-
     public byte[] generateJobTicketPdf(JobTicket jobTicket) {
         log.info("Generating PDF for job ticket: {}", jobTicket != null ? jobTicket.getId() : "null");
         
@@ -179,7 +155,7 @@ public class PdfGenerationService {
      * @throws PdfGenerationException with details about the failure after all retry attempts
      */
     @SuppressWarnings("unused")
-    public byte[] generateJobTicketPdfWithImagesFallback(String html, Exception ex) {
+    private byte[] generateJobTicketPdfWithImagesFallback(String html, Exception ex) {
         log.error("All retry attempts failed for HTML to PDF generation", ex);
         throw new PdfGenerationException("Failed to generate PDF from HTML after multiple attempts: " + ex.getMessage(), ex);
     }
