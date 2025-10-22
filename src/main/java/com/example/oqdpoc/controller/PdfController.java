@@ -1,8 +1,12 @@
 package com.example.oqdpoc.controller;
 
 import com.example.oqdpoc.exception.PdfGenerationException;
-import com.example.oqdpoc.model.ShortWorkPeriod;
+import com.example.oqdpoc.model.shortworkperiod.WorkOrder;
 import com.example.oqdpoc.model.jobticket.JobTicket;
+import com.fasterxml.jackson.databind.JsonNode;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import com.example.oqdpoc.service.ImageProcessingService;
 import com.example.oqdpoc.service.PdfGenerationService;
 import com.example.oqdpoc.validator.FileTypeValidator;
@@ -22,16 +26,16 @@ import org.thymeleaf.context.Context;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
 import io.swagger.v3.oas.annotations.Hidden;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import com.example.oqdpoc.config.Resilience4jConfig;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -69,19 +73,19 @@ public class PdfController {
      */
     private ResponseEntity<Map<String, Object>> createErrorResponse(String message) {
         return ResponseEntity.badRequest()
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(Map.of(
-                "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                "status", HttpStatus.BAD_REQUEST.value(),
-                "error", "Bad Request",
-                "message", message
-            ));
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of(
+                        "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
+                        "status", HttpStatus.BAD_REQUEST.value(),
+                        "error", "Bad Request",
+                        "message", message
+                ));
     }
 
     /**
      * Creates a PDF response based on the accept header
-     * 
-     * @param pdfBytes The PDF content as bytes
+     *
+     * @param pdfBytes     The PDF content as bytes
      * @param base64Images List of base64-encoded images
      * @param acceptHeader The Accept header from the request
      * @return ResponseEntity containing either the PDF or a JSON response
@@ -89,21 +93,21 @@ public class PdfController {
     private ResponseEntity<?> createPdfResponse(byte[] pdfBytes, List<String> base64Images, String acceptHeader) {
         try {
             log.debug("Preparing response. Accept header: {}", acceptHeader);
-            boolean preferJson = StringUtils.hasText(acceptHeader) && 
-                              acceptHeader.contains(MediaType.APPLICATION_JSON_VALUE);
-            
+            boolean preferJson = StringUtils.hasText(acceptHeader) &&
+                    acceptHeader.contains(MediaType.APPLICATION_JSON_VALUE);
+
             if (preferJson) {
                 log.debug("Creating JSON response with base64-encoded PDF");
                 String base64Pdf = Base64.getEncoder().encodeToString(pdfBytes);
                 Map<String, Object> response = Map.of(
-                    "status", "success",
-                    "imageCount", base64Images.size(),
-                    "pdfBase64", base64Pdf
+                        "status", "success",
+                        "imageCount", base64Images.size(),
+                        "pdfBase64", base64Pdf
                 );
                 log.debug("JSON response prepared successfully");
                 return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(response);
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(response);
             } else {
                 log.debug("Creating PDF response");
                 HttpHeaders headers = new HttpHeaders();
@@ -120,55 +124,55 @@ public class PdfController {
         }
     }
 
-      /**
+    /**
      * Renders a Job Ticket JSON into a PDF document
-     * 
-     * @param jobTicket The job ticket data to render
+     *
+     * @param jobTicket    The job ticket data to render
      * @param acceptHeader Optional Accept header to determine response format
      * @return ResponseEntity containing either the PDF bytes or a JSON response with base64-encoded PDF
      */
     @PostMapping(value = "/render-job-ticket",
-        produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
-        consumes = MediaType.APPLICATION_JSON_VALUE)
+            produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
+            consumes = MediaType.APPLICATION_JSON_VALUE)
     @RateLimiter(name = Resilience4jConfig.PDF_GENERATION_RATE_LIMITER)
     public ResponseEntity<?> renderJobTicket(
             @RequestBody JobTicket jobTicket,
             @RequestHeader(value = "Accept", required = false) String acceptHeader) {
-        
-        log.info("Received request to generate Job Ticket PDF for checklist ID: {}", 
 
-            jobTicket != null ? jobTicket.getChecklistId() : "null");
-        
+        log.info("Received request to generate Job Ticket PDF for checklist ID: {}",
+
+                jobTicket != null ? jobTicket.getChecklistId() : "null");
+
         if (jobTicket == null) {
             log.warn("Null job ticket provided");
             return ResponseEntity.badRequest().body(
-                Map.of(
-                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                    "status", HttpStatus.BAD_REQUEST.value(),
-                    "error", "Bad Request",
-                    "message", "Job ticket data is required"
-                )
+                    Map.of(
+                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
+                            "status", HttpStatus.BAD_REQUEST.value(),
+                            "error", "Bad Request",
+                            "message", "Job ticket data is required"
+                    )
             );
         }
-        
+
         try {
             // Generate the PDF with retry capability
             byte[] pdfBytes = pdfGenerationService.generateJobTicketPdf(jobTicket);
-            
+
             // Check the Accept header to determine the response type
             boolean preferJson = acceptHeader != null && acceptHeader.contains(MediaType.APPLICATION_JSON_VALUE);
-            
+
             if (preferJson) {
                 // Return JSON response with base64-encoded PDF
                 String base64Pdf = Base64.getEncoder().encodeToString(pdfBytes);
                 return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of(
-                        "status", "success",
-                        "filename", JOB_TICKET_PDF_FILENAME,
-                        "pdfBase64", base64Pdf,
-                        "checklistId", jobTicket.getChecklistId()
-                    ));
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(Map.of(
+                                "status", "success",
+                                "filename", JOB_TICKET_PDF_FILENAME,
+                                "pdfBase64", base64Pdf,
+                                "checklistId", jobTicket.getChecklistId()
+                        ));
             } else {
                 // Return raw PDF file
                 HttpHeaders headers = new HttpHeaders();
@@ -177,39 +181,39 @@ public class PdfController {
                 headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
                 return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
             }
-            
+
         } catch (PdfGenerationException e) {
             log.error("Error generating Job Ticket PDF: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of(
-                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                    "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "error", "PDF Generation Failed",
-                    "message", "Failed to generate Job Ticket PDF: " + e.getMessage()
-                ));
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
+                            "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                            "error", "PDF Generation Failed",
+                            "message", "Failed to generate Job Ticket PDF: " + e.getMessage()
+                    ));
         } catch (Exception e) {
             log.error("Unexpected error generating Job Ticket PDF", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of(
-                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                    "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "error", "Internal Server Error",
-                    "message", "An unexpected error occurred: " + e.getMessage()
-                ));
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
+                            "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                            "error", "Internal Server Error",
+                            "message", "An unexpected error occurred: " + e.getMessage()
+                    ));
         }
     }
-    
+
     /**
      * Renders a Job Ticket with attached images into a PDF document
-     * 
+     *
      * @param acceptHeader Optional Accept header to determine response format
      * @return ResponseEntity containing either the PDF bytes or a JSON response with base64-encoded PDF
      */
-    @PostMapping(value = "/render-job-ticket-with-images", 
-        produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
-        consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/render-job-ticket-with-images",
+            produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Retry(name = Resilience4jConfig.PDF_GENERATION_RETRY)
     @RateLimiter(name = Resilience4jConfig.PDF_GENERATION_RATE_LIMITER)
     @Hidden // Hide from default OpenAPI docs as we're using programmatic configuration
@@ -217,7 +221,7 @@ public class PdfController {
             @RequestPart("jobTicket") String jobTicketJson,
             @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles,
             @RequestHeader(value = "Accept", required = false) String acceptHeader) {
-        
+
         log.info("Received request to generate job ticket PDF");
 
         // Check if the jobTicket JSON is present and not empty
@@ -225,7 +229,7 @@ public class PdfController {
             log.warn("Missing or empty required part 'jobTicket'");
             return createErrorResponse("Missing or empty required part 'jobTicket'");
         }
-        
+
         // Validate image files if any are provided
         if (imageFiles != null && !imageFiles.isEmpty()) {
             try {
@@ -235,10 +239,10 @@ public class PdfController {
                 return createErrorResponse(e.getMessage());
             }
         }
-        
+
         try {
             log.info("Received request to generate job ticket PDF");
-            
+
             // 1. Parse JSON payload
             JobTicket jobTicket;
             try {
@@ -247,7 +251,7 @@ public class PdfController {
                 log.error("Failed to parse job ticket JSON: {}", e.getMessage());
                 return createErrorResponse("Invalid JSON in jobTicket: " + e.getMessage());
             }
-            
+
             // 2. Process images (if any) using the ImageProcessingService
             List<String> base64Images = Collections.emptyList();
             if (imageFiles != null && !imageFiles.isEmpty()) {
@@ -259,68 +263,66 @@ public class PdfController {
                     return createErrorResponse(e.getMessage());
                 }
             }
-            
+
             // 3. Generate HTML with Thymeleaf
             Context context = new Context();
             context.setVariable("jobTicket", jobTicket);
             context.setVariable("images", base64Images);
-            
+
             String html = templateEngine.process("jobTicketWithImages", context);
-            
+
             // 4. Generate PDF
             byte[] pdfBytes = pdfGenerationService.generateJobTicketPdfWithImages(html);
-            
+
             // 5. Return response
             return createPdfResponse(pdfBytes, base64Images, acceptHeader);
         } catch (PdfGenerationException e) {
             log.error("Error generating PDF: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of(
-                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                    "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "error", "PDF Generation Failed",
-                    "message", "Failed to generate PDF: " + e.getMessage(),
-                    "details", e.toString(),
-                    "stackTrace", Arrays.stream(e.getStackTrace())
-                                      .map(StackTraceElement::toString)
-                                      .collect(Collectors.toList())
-                ));
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
+                            "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                            "error", "PDF Generation Failed",
+                            "message", "Failed to generate PDF: " + e.getMessage(),
+                            "details", e.toString(),
+                            "stackTrace", Arrays.stream(e.getStackTrace())
+                                    .map(StackTraceElement::toString)
+                                    .collect(Collectors.toList())
+                    ));
         } catch (Exception e) {
             log.error("Unexpected error generating Job Ticket PDF", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Map.of(
-                    "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                    "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "error", "Internal Server Error",
-                    "message", "An unexpected error occurred: " + e.getMessage()
-                ));
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of(
+                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
+                            "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                            "error", "Internal Server Error",
+                            "message", "An unexpected error occurred: " + e.getMessage()
+                    ));
         }
     }
-    
+
     /**
      * Renders a Job Ticket with optional Short Work Period details into a PDF document
-     * 
-     * @param jobTicketJson Required JSON string containing the job ticket data
+     *
+     * @param jobTicketJson       Required JSON string containing the job ticket data
      * @param shortWorkPeriodJson Optional JSON string containing the short work period data
-     * @param acceptHeader Optional Accept header to determine response format
+     * @param acceptHeader        Optional Accept header to determine response format
      * @return ResponseEntity containing either the PDF bytes or a JSON response with base64-encoded PDF
      */
     @PostMapping(
-        value = "/render-job-ticket-short-work-period",
-        produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
-        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+            value = "/render-job-ticket-short-work-period",
+            produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @RateLimiter(name = Resilience4jConfig.PDF_GENERATION_RATE_LIMITER)
-    public ResponseEntity<?> renderJobTicketAndShortWorkPeriod(
+    public ResponseEntity<?> renderJobTicketAndWorkOrders(
             @RequestPart("jobTicket") String jobTicketJson,
             @RequestPart(value = "shortWorkPeriod", required = false) String shortWorkPeriodJson,
             @RequestHeader(value = "Accept", required = false) String acceptHeader) {
-        
-        log.info("Received request to generate Job Ticket PDF with optional Short Work Period details");
-        
-        // 1. Parse required JobTicket JSON
+
+        // 1. Parse JobTicket JSON
         JobTicket jobTicket;
         try {
             jobTicket = objectMapper.readValue(jobTicketJson, JobTicket.class);
@@ -329,29 +331,53 @@ public class PdfController {
             log.error("Failed to parse jobTicket JSON: {}", e.getMessage());
             return createErrorResponse("Invalid jobTicket JSON: " + e.getMessage());
         }
-        
-        // 2. Parse optional ShortWorkPeriod JSON if provided
-        ShortWorkPeriod shortWorkPeriod = null;
+
+        // 2. Parse optional WorkOrders JSON if provided
+        List<WorkOrder> workOrders = new ArrayList<>();
         if (StringUtils.hasText(shortWorkPeriodJson)) {
             try {
-                shortWorkPeriod = objectMapper.readValue(shortWorkPeriodJson, ShortWorkPeriod.class);
-                log.debug("Successfully parsed ShortWorkPeriod data");
+                JsonNode rootNode = objectMapper.readTree(shortWorkPeriodJson);
+                JsonNode memberNode = rootNode.path("member");
+                if (memberNode.isArray()) {
+                    for (JsonNode node : memberNode) {
+                        WorkOrder workOrder = objectMapper.treeToValue(node, WorkOrder.class);
+                        workOrders.add(workOrder);
+                    }
+                    log.debug("Successfully parsed {} work orders", workOrders.size());
+                }
             } catch (JsonProcessingException e) {
-                log.warn("Failed to parse shortWorkPeriod JSON, continuing without it: {}", e.getMessage());
-                // Continue without shortWorkPeriod data as it's optional
+                log.warn("Failed to parse work orders JSON, continuing without it: {}", e.getMessage());
+                // Continue without work orders data as it's optional
             }
         } else {
-            log.debug("No ShortWorkPeriod data provided");
+            log.debug("No work orders data provided");
         }
-        
-        // TODO: Add PDF generation logic here using jobTicket and shortWorkPeriod
-        
-        // For now, return a success response with the parsed objects
-        return ResponseEntity.ok().body(Map.of(
-            "status", "success",
-            "message", "Successfully parsed request data",
-            "jobTicketId", jobTicket.getId(),
-            "hasShortWorkPeriod", shortWorkPeriod != null
-        ));
+
+        // TODO: Add PDF generation logic here using jobTicket and workOrders
+
+        // Prepare response data
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("message", "Successfully parsed request data");
+        response.put("jobTicketId", jobTicket.getId());
+        response.put("workOrderCount", workOrders.size());
+        response.put("hasWorkOrders", !workOrders.isEmpty());
+
+        // Convert work orders to a list of simple maps for JSON serialization
+        List<Map<String, Object>> workOrderMaps = workOrders.stream()
+                .map(workOrder -> {
+                    Map<String, Object> wo = new HashMap<>();
+                    wo.put("wonum", workOrder.getWonum());
+                    wo.put("description", workOrder.getDescription());
+                    wo.put("status", workOrder.getStatus());
+                    return wo;
+                })
+                .collect(Collectors.toList());
+
+        response.put("workOrders", workOrderMaps);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(response);
     }
 }

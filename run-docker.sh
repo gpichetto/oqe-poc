@@ -41,8 +41,8 @@ create_network
 # Check if Redis is running, if not start it
 if ! docker ps | grep -q $REDIS_CONTAINER; then
     echo -e "${YELLOW}Redis container not found. Starting Redis...${NC}"
-    if ! docker-compose up -d redis; then
-        echo -e "${RED}Failed to start Redis. Make sure docker-compose is installed.${NC}"
+    if ! docker compose up -d redis-oqe; then
+        echo -e "${RED}Failed to start Redis. Make sure docker compose is installed.${NC}"
         exit 1
     fi
     echo -e "${GREEN}Redis started successfully on port ${REDIS_PORT}${NC}"
@@ -52,7 +52,7 @@ fi
 
 # Build the Docker image
 echo -e "${GREEN}Building Docker image...${NC}"
-docker-compose build --no-cache pdf-service
+docker compose build --no-cache pdf-service
 
 # Check if debug mode is enabled
 if [ "$1" = "--debug" ] || [ "$1" = "-d" ]; then
@@ -66,22 +66,17 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Check if container already exists and remove it
-if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
-    echo -e "${GREEN}Removing existing container...${NC}"
-    docker rm -f $CONTAINER_NAME >/dev/null
-fi
-
 # Stop and remove existing container if it exists
+if docker ps -a --format '{{.Names}}' | grep -q "^$CONTAINER_NAME$"; then
     echo -e "${YELLOW}Stopping and removing existing container...${NC}"
-    docker stop $CONTAINER_NAME >/dev/null
-    docker rm $CONTAINER_NAME >/dev/null
+    docker stop $CONTAINER_NAME >/dev/null 2>&1
+    docker rm $CONTAINER_NAME >/dev/null 2>&1
 fi
 
-# Use docker-compose to start the services
+# Use docker compose to start the services
 echo -e "${GREEN}Starting PDF Service with Redis...${NC}"
-if ! docker-compose up -d pdf-service; then
-    echo -e "${RED}Failed to start PDF Service. Check the logs with 'docker-compose logs -f'${NC}"
+if ! docker compose up -d pdf-service; then
+    echo -e "${RED}Failed to start PDF Service. Check the logs with 'docker compose logs -f'${NC}"
     exit 1
 fi
 
@@ -90,5 +85,5 @@ sleep 2
 echo -e "\n${GREEN}Containers started successfully!${NC}"
 echo -e "PDF Service: http://localhost:${PORT}/actuator/health"
 echo -e "Redis: redis://localhost:${REDIS_PORT}"
-echo -e "\n${YELLOW}To view logs, run: docker-compose logs -f${NC}"
-echo -e "${YELLOW}To stop the services, run: docker-compose down${NC}"
+echo -e "\n${YELLOW}To view logs, run: docker compose logs -f${NC}"
+echo -e "${YELLOW}To stop the services, run: docker compose down${NC}"
