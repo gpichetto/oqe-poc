@@ -1,7 +1,6 @@
 package com.example.oqdpoc.service;
 
 import com.example.oqdpoc.exception.PdfGenerationException;
-import com.example.oqdpoc.model.ChecklistItem;
 import com.example.oqdpoc.model.jobticket.JobTicket;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import org.slf4j.Logger;
@@ -15,8 +14,6 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.io.ByteArrayOutputStream;
-import java.util.List;
-import java.util.Objects;
 
 @Service
 @CacheConfig(cacheNames = "jobTicketTemplates")
@@ -25,7 +22,6 @@ public class PdfGenerationService {
     private static final Logger log = LoggerFactory.getLogger(PdfGenerationService.class);
     private final TemplateEngine templateEngine;
 
-    private static final String CHECKLIST_TEMPLATE = "checklist";
     private static final String JOB_TICKET_TEMPLATE = "jobTicket";
     private static final String CACHE_KEY_PREFIX = "template::";
 
@@ -33,49 +29,6 @@ public class PdfGenerationService {
         this.templateEngine = templateEngine;
     }
 
-
-    /**
-     * Generates a PDF document from a list of checklist items
-     *
-     * @param checklistItems List of items to include in the PDF
-     * @return byte array containing the generated PDF
-     * @throws PdfGenerationException if there's an error generating the PDF
-     */
-    @Cacheable(key = "#root.target.CACHE_KEY_PREFIX + #root.target.CHECKLIST_TEMPLATE + '::' + T(java.util.Objects).hash(#checklistItems)")
-    public String processChecklistTemplate(List<ChecklistItem> checklistItems) {
-        Objects.requireNonNull(checklistItems, "Checklist items cannot be null");
-
-        if (checklistItems.isEmpty()) {
-            throw new IllegalArgumentException("Checklist items cannot be empty");
-        }
-
-        log.debug("Processing checklist template for {} items", checklistItems.size());
-        Context context = new Context();
-        context.setVariable("items", checklistItems);
-        return templateEngine.process(CHECKLIST_TEMPLATE, context);
-    }
-
-    public byte[] generatePdf(List<ChecklistItem> checklistItems) {
-        log.debug("Starting PDF generation for {} items", checklistItems.size());
-        String html = processChecklistTemplate(checklistItems);
-        
-        try {
-
-            // Convert HTML to PDF
-            try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-                PdfRendererBuilder builder = new PdfRendererBuilder()
-                        .withHtmlContent(html, "")
-                        .toStream(outputStream);
-
-
-                log.debug("Successfully generated PDF with {} bytes", outputStream.size());
-                return outputStream.toByteArray();
-            }
-        } catch (Exception e) {
-            log.error("Error generating PDF (attempt will be retried)", e);
-            throw new PdfGenerationException("Failed to generate PDF: " + e.getMessage(), e);
-        }
-    }
 
     /**
      * Generates a PDF document from an HTML string with retry capability

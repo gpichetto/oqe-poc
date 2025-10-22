@@ -1,12 +1,10 @@
 package com.example.oqdpoc.controller;
 
-import com.example.oqdpoc.config.FileUploadProperties;
 import com.example.oqdpoc.exception.PdfGenerationException;
-import com.example.oqdpoc.model.ChecklistItem;
+import com.example.oqdpoc.model.ShortWorkPeriod;
 import com.example.oqdpoc.model.jobticket.JobTicket;
 import com.example.oqdpoc.service.ImageProcessingService;
 import com.example.oqdpoc.service.PdfGenerationService;
-import com.example.oqdpoc.validator.ChecklistItemValidator;
 import com.example.oqdpoc.validator.FileTypeValidator;
 import com.example.oqdpoc.exception.FileTypeValidationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -21,8 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.DataBinder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -32,16 +28,12 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import com.example.oqdpoc.config.Resilience4jConfig;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
 
@@ -50,31 +42,24 @@ import java.time.format.DateTimeFormatter;
 @RequestMapping("/api/pdf")
 public class PdfController {
     private static final Logger log = LoggerFactory.getLogger(PdfController.class);
-    private static final String PDF_FILENAME = "checklist.pdf";
     private static final String JOB_TICKET_PDF_FILENAME = "job-ticket.pdf";
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
-    private final ChecklistItemValidator checklistItemValidator;
     private final PdfGenerationService pdfGenerationService;
     private final TemplateEngine templateEngine;
     private final ObjectMapper objectMapper;
-    private final FileUploadProperties fileUploadProperties;
     private final FileTypeValidator fileTypeValidator;
     private final ImageProcessingService imageProcessingService;
 
     public PdfController(
-            ChecklistItemValidator checklistItemValidator,
             PdfGenerationService pdfGenerationService,
             TemplateEngine templateEngine,
             ObjectMapper objectMapper,
-            FileUploadProperties fileUploadProperties,
             FileTypeValidator fileTypeValidator,
             ImageProcessingService imageProcessingService) {
-        this.checklistItemValidator = checklistItemValidator;
         this.pdfGenerationService = pdfGenerationService;
         this.templateEngine = templateEngine;
         this.objectMapper = objectMapper;
-        this.fileUploadProperties = fileUploadProperties;
         this.fileTypeValidator = fileTypeValidator;
         this.imageProcessingService = imageProcessingService;
     }
@@ -135,117 +120,7 @@ public class PdfController {
         }
     }
 
-    private ResponseEntity<Map<String, Object>> createValidationErrorResponse(BindingResult bindingResult) {
-        log.warn("Validation errors found: {}", bindingResult.getAllErrors());
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER));
-        response.put("status", HttpStatus.BAD_REQUEST.value());
-        response.put("error", "Validation Error");
-        
-        // Collect all field errors
-        List<String> errors = bindingResult.getFieldErrors().stream()
-            .map(error -> String.format("%s: %s", error.getField(), error.getDefaultMessage()))
-            .collect(Collectors.toList());
-            
-        // Add global errors
-        bindingResult.getGlobalErrors().stream()
-            .map(error -> String.format("%s: %s", 
-                error.getObjectName(), 
-                error.getDefaultMessage()))
-            .forEach(errors::add);
-            
-        response.put("message", "Validation failed");
-        response.put("errors", errors);
-        
-        return ResponseEntity
-            .status(HttpStatus.BAD_REQUEST)
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(response);
-    }
-    
-    @PostMapping(value = "/render", 
-        produces = {MediaType.APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
-        consumes = MediaType.APPLICATION_JSON_VALUE)
-    @RateLimiter(name = Resilience4jConfig.PDF_GENERATION_RATE_LIMITER)
-    public ResponseEntity<?> renderPdf(
-            @RequestBody(required = false) List<ChecklistItem> checklistItems,
-            @RequestHeader(value = "Accept", required = false) String acceptHeader) {
-
-        // Check for null request body
-        if (checklistItems == null) {
-            log.warn("Null checklist items provided");
-            return ResponseEntity.badRequest().body(
-                    Map.of(
-                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                            "status", HttpStatus.BAD_REQUEST.value(),
-                            "error", "Bad Request",
-                            "message", "Request body is required"
-                    )
-            );
-        }
-
-        // Check for empty list
-        if (checklistItems.isEmpty()) {
-            log.warn("Empty checklist items provided");
-            return ResponseEntity.badRequest().body(
-                    Map.of(
-                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                            "status", HttpStatus.BAD_REQUEST.value(),
-                            "error", "Bad Request",
-                            "message", "At least one checklist item is required"
-                    )
-            );
-        }
-
-        for (int i = 0; i < checklistItems.size(); i++) {
-            ChecklistItem item = checklistItems.get(i);
-            DataBinder binder = new DataBinder(item, "checklistItems[" + i + "]");
-            BindingResult bindingResult = binder.getBindingResult();
-            checklistItemValidator.validate(item, bindingResult);
-
-            if (bindingResult.hasErrors()) {
-                return createValidationErrorResponse(bindingResult);
-            }
-        }
-
-        // Generate the PDF
-        try {
-            byte[] pdfBytes = pdfGenerationService.generatePdf(checklistItems);
-
-            // Return the appropriate response based on the Accept header
-            if (acceptHeader != null && acceptHeader.contains(MediaType.APPLICATION_JSON_VALUE)) {
-                // Return JSON with base64-encoded PDF
-                String base64Pdf = Base64.getEncoder().encodeToString(pdfBytes);
-                return ResponseEntity.ok()
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(Map.of(
-                                "status", "success",
-                                "pdfBase64", base64Pdf
-                        ));
-            } else {
-                // Return PDF directly
-                return ResponseEntity.ok()
-                        .contentType(MediaType.APPLICATION_PDF)
-                        .header(HttpHeaders.CONTENT_DISPOSITION,
-                                "inline; filename=\"" + PDF_FILENAME + "\"")
-                        .body(pdfBytes);
-            }
-
-        } catch (PdfGenerationException e) {
-            log.error("Error generating PDF: {}", e.getMessage(), e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of(
-                            "timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER),
-                            "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                            "error", "PDF Generation Failed",
-                            "message", "Failed to generate PDF: " + e.getMessage()
-                    ));
-        }
-    }
-    
-    /**
+      /**
      * Renders a Job Ticket JSON into a PDF document
      * 
      * @param jobTicket The job ticket data to render
@@ -422,5 +297,61 @@ public class PdfController {
                     "message", "An unexpected error occurred: " + e.getMessage()
                 ));
         }
+    }
+    
+    /**
+     * Renders a Job Ticket with optional Short Work Period details into a PDF document
+     * 
+     * @param jobTicketJson Required JSON string containing the job ticket data
+     * @param shortWorkPeriodJson Optional JSON string containing the short work period data
+     * @param acceptHeader Optional Accept header to determine response format
+     * @return ResponseEntity containing either the PDF bytes or a JSON response with base64-encoded PDF
+     */
+    @PostMapping(
+        value = "/render-job-ticket-short-work-period",
+        produces = {APPLICATION_PDF_VALUE, MediaType.APPLICATION_JSON_VALUE},
+        consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    @RateLimiter(name = Resilience4jConfig.PDF_GENERATION_RATE_LIMITER)
+    public ResponseEntity<?> renderJobTicketAndShortWorkPeriod(
+            @RequestPart("jobTicket") String jobTicketJson,
+            @RequestPart(value = "shortWorkPeriod", required = false) String shortWorkPeriodJson,
+            @RequestHeader(value = "Accept", required = false) String acceptHeader) {
+        
+        log.info("Received request to generate Job Ticket PDF with optional Short Work Period details");
+        
+        // 1. Parse required JobTicket JSON
+        JobTicket jobTicket;
+        try {
+            jobTicket = objectMapper.readValue(jobTicketJson, JobTicket.class);
+            log.debug("Successfully parsed JobTicket with ID: {}", jobTicket.getId());
+        } catch (JsonProcessingException e) {
+            log.error("Failed to parse jobTicket JSON: {}", e.getMessage());
+            return createErrorResponse("Invalid jobTicket JSON: " + e.getMessage());
+        }
+        
+        // 2. Parse optional ShortWorkPeriod JSON if provided
+        ShortWorkPeriod shortWorkPeriod = null;
+        if (StringUtils.hasText(shortWorkPeriodJson)) {
+            try {
+                shortWorkPeriod = objectMapper.readValue(shortWorkPeriodJson, ShortWorkPeriod.class);
+                log.debug("Successfully parsed ShortWorkPeriod data");
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to parse shortWorkPeriod JSON, continuing without it: {}", e.getMessage());
+                // Continue without shortWorkPeriod data as it's optional
+            }
+        } else {
+            log.debug("No ShortWorkPeriod data provided");
+        }
+        
+        // TODO: Add PDF generation logic here using jobTicket and shortWorkPeriod
+        
+        // For now, return a success response with the parsed objects
+        return ResponseEntity.ok().body(Map.of(
+            "status", "success",
+            "message", "Successfully parsed request data",
+            "jobTicketId", jobTicket.getId(),
+            "hasShortWorkPeriod", shortWorkPeriod != null
+        ));
     }
 }
