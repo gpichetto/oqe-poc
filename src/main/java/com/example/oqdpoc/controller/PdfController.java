@@ -353,31 +353,26 @@ public class PdfController {
             log.debug("No work orders data provided");
         }
 
-        // TODO: Add PDF generation logic here using jobTicket and workOrders
+        // Find the work order that matches the job ticket's work order number
+        WorkOrder workOrderForReport = workOrders.stream()
+            .filter(workOrder -> workOrder.getWonum()
+                .equals(jobTicket.getAnswers().getMetadata().getAdditional().getWorkOrder().getWorkOrderNum()))
+            .findFirst()
+            .orElse(null);
 
-        // Prepare response data
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "success");
-        response.put("message", "Successfully parsed request data");
-        response.put("jobTicketId", jobTicket.getId());
-        response.put("workOrderCount", workOrders.size());
-        response.put("hasWorkOrders", !workOrders.isEmpty());
+        // Create Thymeleaf context and add variables
+        Context context = new Context();
+        context.setVariable("jobTicket", jobTicket);
+        context.setVariable("workOrderForReport", workOrderForReport);
 
-        // Convert work orders to a list of simple maps for JSON serialization
-        List<Map<String, Object>> workOrderMaps = workOrders.stream()
-                .map(workOrder -> {
-                    Map<String, Object> wo = new HashMap<>();
-                    wo.put("wonum", workOrder.getWonum());
-                    wo.put("description", workOrder.getDescription());
-                    wo.put("status", workOrder.getStatus());
-                    return wo;
-                })
-                .collect(Collectors.toList());
 
-        response.put("workOrders", workOrderMaps);
+        // Process the template with the data
+        String html = templateEngine.process("jobTicket-V2", context);
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(response);
+        // Generate PDF using the service
+        byte[] pdfBytes = pdfGenerationService.generatePdfWithWorkOrder(html);
+
+        // Return the PDF as a response
+        return createPdfResponse(pdfBytes, Collections.emptyList(), acceptHeader);
     }
 }

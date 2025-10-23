@@ -58,6 +58,34 @@ public class PdfGenerationService {
         }
     }
 
+    /**
+     * Generates a PDF document from an HTML string using the V2 template with retry capability
+     *
+     * @param html The HTML content to convert to PDF
+     * @return byte array containing the generated PDF
+     * @throws PdfGenerationException if there's an error generating the PDF after all retry attempts
+     */
+    @Retry(name = "pdfGeneration", fallbackMethod = "generatePdfWithWorkOrderFallback")
+    public byte[] generatePdfWithWorkOrder(String html) {
+        log.debug("Generating PDF with work order from HTML content");
+        if (!StringUtils.hasText(html)) {
+            throw new IllegalArgumentException("The content cannot be null or empty");
+        }
+
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            PdfRendererBuilder builder = new PdfRendererBuilder()
+                    .withHtmlContent(html, "")
+                    .toStream(outputStream);
+
+            builder.run();
+            log.debug("Successfully generated PDF with work order, size: {} bytes", outputStream.size());
+            return outputStream.toByteArray();
+        } catch (Exception e) {
+            log.error("Error generating PDF with work order from HTML: {}", e.getMessage());
+            throw new PdfGenerationException("Failed to generate PDF from HTML with work order: " + e.getMessage(), e);
+        }
+    }
+
     @Cacheable(key = "#root.target.CACHE_KEY_PREFIX + #root.target.JOB_TICKET_TEMPLATE + '::' + #jobTicket.id")
     private String processJobTicketTemplate(JobTicket jobTicket) {
         log.info("Processing job ticket template for ID: {}", jobTicket != null ? jobTicket.getId() : "null");
@@ -107,9 +135,16 @@ public class PdfGenerationService {
      * @return This method always throws an exception
      * @throws PdfGenerationException with details about the failure after all retry attempts
      */
-    @SuppressWarnings("unused")
     private byte[] generateJobTicketPdfWithImagesFallback(String html, Exception ex) {
         log.error("All retry attempts failed for HTML to PDF generation", ex);
         throw new PdfGenerationException("Failed to generate PDF from HTML after multiple attempts: " + ex.getMessage(), ex);
+    }
+
+    /**
+     * Fallback method for generatePdfWithWorkOrder
+     */
+    public byte[] generatePdfWithWorkOrderFallback(String html, Exception e) {
+        log.error("Fallback triggered for generatePdfWithWorkOrder after retries: {}", e.getMessage());
+        throw new PdfGenerationException("PDF generation with work order failed after retries: " + e.getMessage(), e);
     }
 }
