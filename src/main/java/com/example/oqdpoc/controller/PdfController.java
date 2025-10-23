@@ -269,6 +269,9 @@ public class PdfController {
             context.setVariable("jobTicket", jobTicket);
             context.setVariable("images", base64Images);
 
+            String logoPath = new java.io.File("src/main/resources/static/images/thales-logo.png").getAbsolutePath();
+            context.setVariable("logoUrl", "file:" + logoPath);
+
             String html = templateEngine.process("jobTicketWithImages", context);
 
             // 4. Generate PDF
@@ -364,7 +367,8 @@ public class PdfController {
         Context context = new Context();
         context.setVariable("jobTicket", jobTicket);
         context.setVariable("workOrderForReport", workOrderForReport);
-
+        String logoPath = new java.io.File("src/main/resources/static/images/thales-logo.png").getAbsolutePath();
+        context.setVariable("logoUrl", "file:" + logoPath);
 
         // Process the template with the data
         String html = templateEngine.process("jobTicket-V2", context);

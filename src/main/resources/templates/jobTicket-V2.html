@@ -233,6 +233,55 @@
       color: #555;
       word-break: break-word;
     }
+    
+    /* New consistent info boxes */
+    .info-box {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      height: 100%;
+    }
+
+    .info-box h5 {
+      color: #2c3e50;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: none;
+    }
+
+    .info-item {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .info-item:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .info-item strong {
+      color: #2c3e50;
+      font-weight: 500;
+      margin-right: 0.5rem;
+    }
+
+    .info-item .text-muted {
+      color: #6c757d !important;
+    }
+    
+    @media print {
+      .info-box {
+        box-shadow: none;
+        border: 1px solid #dee2e6;
+        page-break-inside: avoid;
+      }
+    }
 
     .footer {
       text-align: center;
@@ -402,60 +451,45 @@
 </div>
 
 <div class="container">
-  <div class="ticket-header mb-4">
-    <!-- Equipment -->
-    <div class="info-box mb-3">
-      <h5>Equipment</h5>
-      <div class="d-flex flex-column">
-        <div
-                class="mb-2"
-                th:if="${jobTicket.answers?.metadata?.additional?.asset?.designation}"
-        >
-          <strong>Designation:</strong>
-          <span
-                  th:text="${jobTicket.answers.metadata.additional.asset.designation}"
-          ></span>
-        </div>
-        <div class="mb-2">
-          <strong>Part Number:</strong>
-          <span
-                  th:if="${jobTicket.answers?.metadata?.additional?.asset?.partNumber != null and jobTicket.answers.metadata.additional.asset.partNumber != ''}"
-                  th:text="${jobTicket.answers.metadata.additional.asset.partNumber}"
-          ></span>
-          <span
-                  th:unless="${jobTicket.answers?.metadata?.additional?.asset?.partNumber != null and jobTicket.answers.metadata.additional.asset.partNumber != ''}"
-          >-</span
-          >
-        </div>
-        <div class="mb-2">
-          <strong>Serial Number:</strong>
-          <span
-                  th:if="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber != null and jobTicket.answers.metadata.additional.asset.serialNumber != ''}"
-                  th:text="${jobTicket.answers.metadata.additional.asset.serialNumber}"
-          ></span>
-          <span
-                  th:unless="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber != null and jobTicket.answers.metadata.additional.asset.serialNumber != ''}"
-          >-</span
-          >
+  <div class="row g-4">
+    <!-- Report Info -->
+    <div class="col-md-6">
+      <div class="info-box">
+        <h5>Report Information</h5>
+        <div class="info-content">
+          <div class="info-item" th:if="${jobTicket.createdAt}">
+            <strong>Date and Time:</strong>
+            <span th:text="${#temporals.format(jobTicket.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+          </div>
+          <div class="info-item" th:if="${jobTicket.user?.email}">
+            <strong>Author:</strong>
+            <span class="text-muted" th:text="${jobTicket.user.email}"></span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Report Info -->
-  <div class="col-md-6 mb-3">
-    <div class="info-box">
-      <h5>Report Information</h5>
-      <div class="d-flex flex-column">
-        <div class="mb-2" th:if="${jobTicket.createdAt}">
-          <strong>Date and Time:</strong>
-          <span
-                  th:text="${#temporals.format(jobTicket.createdAt, 'yyyy-MM-dd HH:mm')}"
-          ></span>
-        </div>
-        <div th:if="${jobTicket.user?.email}">
-          <strong>Author:</strong>
-          <span class="text-muted" th:text="${jobTicket.user.email}"></span>
+    <!-- Equipment -->
+    <div class="col-md-6">
+      <div class="info-box">
+        <h5>Equipment</h5>
+        <div class="info-content">
+          <div class="info-item" th:if="${jobTicket.answers?.metadata?.additional?.asset?.designation}">
+            <strong>Designation:</strong>
+            <span th:text="${jobTicket.answers.metadata.additional.asset.designation}"></span>
+          </div>
+          <div class="info-item">
+            <strong>Part Number:</strong>
+            <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.partNumber != null and jobTicket.answers.metadata.additional.asset.partNumber != ''}"
+                  th:text="${jobTicket.answers.metadata.additional.asset.partNumber}">-</span>
+            <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.partNumber == null or jobTicket.answers.metadata.additional.asset.partNumber == ''}">-</span>
+          </div>
+          <div class="info-item">
+            <strong>Serial Number:</strong>
+            <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber != null and jobTicket.answers.metadata.additional.asset.serialNumber != ''}"
+                  th:text="${jobTicket.answers.metadata.additional.asset.serialNumber}">-</span>
+            <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber == null or jobTicket.answers.metadata.additional.asset.serialNumber == ''}">-</span>
+          </div>
         </div>
       </div>
     </div>
@@ -463,123 +497,130 @@
 </div>
 
 <!-- Work Order Section -->
-<div th:if="${workOrderForReport != null}" class="section-card">
-    <div class="section-header">
-        <h4>Work Order Information</h4>
-    </div>
-    <div class="section-body">
+<div th:if="${workOrderForReport != null}" class="container mt-4">
+  <div class="row g-4">
+    <div class="col-12">
+      <div class="info-box">
+        <h5>Work Order Information</h5>
         <div class="row">
             <!-- Left Column -->
             <div class="col-md-6">
-                <div class="mb-3">
-                    <div class="info-label">Maximo Work Order Number</div>
-                    <div class="info-value" th:text="${workOrderForReport.wonum}">-</div>
+                <div class="info-item">
+                    <strong>Maximo Work Order Number:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.wonum} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">Description</div>
-                    <div class="info-value" th:text="${workOrderForReport.description}">-</div>
+                <div class="info-item">
+                    <strong>Description:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.description} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">Work Details</div>
-                    <div class="info-value" style="white-space: pre-line;" th:text="${workOrderForReport.longDescription}">-</div>
+                <div class="info-item">
+                    <strong>Work Details:</strong>
+                    <div class="text-muted" style="white-space: pre-line;" th:text="${workOrderForReport.longDescription} ?: '-'"></div>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">Maximo Equipment Number</div>
-                    <div class="info-value" th:text="${workOrderForReport.assetNum}">-</div>
+                <div class="info-item">
+                    <strong>Maximo Equipment Number:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.assetNum} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">Work Type</div>
-                    <div class="info-value" th:text="${workOrderForReport.workType}">-</div>
+                <div class="info-item">
+                    <strong>Work Type:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.workType} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">Vendor</div>
-                    <div class="info-value" th:text="${workOrderForReport.vendor}">-</div>
+                <div class="info-item">
+                    <strong>Vendor:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.vendor} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">Scheduled Start</div>
-                    <div class="info-value" th:if="${workOrderForReport.scheduledStart != null}" 
-                         th:text="${#temporals.format(workOrderForReport.scheduledStart, 'yyyy-MM-dd HH:mm')}">-</div>
-                    <div class="info-value" th:unless="${workOrderForReport.scheduledStart != null}">-</div>
+                <div class="info-item">
+                    <strong>Scheduled Start:</strong>
+                    <span class="text-muted" 
+                          th:if="${workOrderForReport.scheduledStart != null}" 
+                          th:text="${#temporals.format(workOrderForReport.scheduledStart, 'yyyy-MM-dd HH:mm')}">-</span>
+                    <span class="text-muted" th:unless="${workOrderForReport.scheduledStart != null}">-</span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">Scheduled Finish</div>
-                    <div class="info-value" th:if="${workOrderForReport.scheduledFinish != null}" 
-                         th:text="${#temporals.format(workOrderForReport.scheduledFinish, 'yyyy-MM-dd HH:mm')}">-</div>
-                    <div class="info-value" th:unless="${workOrderForReport.scheduledFinish != null}">-</div>
+                <div class="info-item">
+                    <strong>Scheduled Finish:</strong>
+                    <span class="text-muted" 
+                          th:if="${workOrderForReport.scheduledFinish != null}" 
+                          th:text="${#temporals.format(workOrderForReport.scheduledFinish, 'yyyy-MM-dd HH:mm')}">-</span>
+                    <span class="text-muted" th:unless="${workOrderForReport.scheduledFinish != null}">-</span>
                 </div>
             </div>
             
             <!-- Right Column -->
             <div class="col-md-6">
-                <div class="mb-3">
-                    <div class="info-label">DRMIS Notification</div>
-                    <div class="info-value" th:text="${workOrderForReport.n1n9}">-</div>
+                <div class="info-item">
+                    <strong>DRMIS Notification:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.n1n9} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">DRMIS ND</div>
-                    <div class="info-value" th:text="${workOrderForReport.and}">-</div>
+                <div class="info-item">
+                    <strong>DRMIS ND:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.and} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">DRMIS Required Start</div>
-                    <div class="info-value" th:if="${workOrderForReport.callDate != null}" 
-                         th:text="${#temporals.format(workOrderForReport.callDate, 'yyyy-MM-dd HH:mm')}">-</div>
-                    <div class="info-value" th:unless="${workOrderForReport.callDate != null}">-</div>
+                <div class="info-item">
+                    <strong>DRMIS Required Start:</strong>
+                    <span class="text-muted" 
+                          th:if="${workOrderForReport.callDate != null}" 
+                          th:text="${#temporals.format(workOrderForReport.callDate, 'yyyy-MM-dd HH:mm')}">-</span>
+                    <span class="text-muted" th:unless="${workOrderForReport.callDate != null}">-</span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">CFTO</div>
-                    <div class="info-value" th:text="${workOrderForReport.cfto}">-</div>
+                <div class="info-item">
+                    <strong>CFTO:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.cfto} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">DRMIS Description</div>
-                    <div class="info-value" th:text="${workOrderForReport.additionalDescription}">-</div>
+                <div class="info-item">
+                    <strong>DRMIS Description:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.additionalDescription} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">DRMIS Maintenance Plan</div>
-                    <div class="info-value" th:text="${workOrderForReport.amountCompletedPlan}">-</div>
+                <div class="info-item">
+                    <strong>DRMIS Maintenance Plan:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.amountCompletedPlan} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">NSC?</div>
-                    <div class="info-value" th:text="${workOrderForReport.answerComplete}">-</div>
+                <div class="info-item">
+                    <strong>NSC?:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.answerComplete} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">DRMIS Notification Date</div>
-                    <div class="info-value" th:if="${workOrderForReport.answerDate != null}" 
-                         th:text="${#temporals.format(workOrderForReport.answerDate, 'yyyy-MM-dd HH:mm')}">-</div>
-                    <div class="info-value" th:unless="${workOrderForReport.answerDate != null}">-</div>
+                <div class="info-item">
+                    <strong>DRMIS Notification Date:</strong>
+                    <span class="text-muted" 
+                          th:if="${workOrderForReport.answerDate != null}" 
+                          th:text="${#temporals.format(workOrderForReport.answerDate, 'yyyy-MM-dd HH:mm')}">-</span>
+                    <span class="text-muted" th:unless="${workOrderForReport.answerDate != null}">-</span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">DRMIS Notification From</div>
-                    <div class="info-value" th:text="${workOrderForReport.answerFrom}">-</div>
+                <div class="info-item">
+                    <strong>DRMIS Notification From:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.answerFrom} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">DRMIS Notification To</div>
-                    <div class="info-value" th:text="${workOrderForReport.answerTo}">-</div>
+                <div class="info-item">
+                    <strong>DRMIS Notification To:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.answerTo} ?: '-'"></span>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="info-label">FER OPDEF Number</div>
-                    <div class="info-value" th:text="${workOrderForReport.operationDefinition}">-</div>
+                <div class="info-item">
+                    <strong>FER OPDEF Number:</strong>
+                    <span class="text-muted" th:text="${workOrderForReport.operationDefinition} ?: '-'"></span>
                 </div>
             </div>
         </div>
     </div>
+    </div>
+  </div>  
 </div>
+
 
 <!-- Main Content Sections -->
 <div
