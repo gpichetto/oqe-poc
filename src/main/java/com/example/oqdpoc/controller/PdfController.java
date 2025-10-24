@@ -5,6 +5,7 @@ import com.example.oqdpoc.model.shortworkperiod.WorkOrder;
 import com.example.oqdpoc.model.jobticket.JobTicket;
 import com.fasterxml.jackson.databind.JsonNode;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import com.example.oqdpoc.service.ImageProcessingService;
@@ -48,6 +49,7 @@ public class PdfController {
     private static final Logger log = LoggerFactory.getLogger(PdfController.class);
     private static final String JOB_TICKET_PDF_FILENAME = "job-ticket.pdf";
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
+    private static final String LOGO_PATH = new java.io.File("src/main/resources/static/images/thales-logo.png").getAbsolutePath();
 
     private final PdfGenerationService pdfGenerationService;
     private final TemplateEngine templateEngine;
@@ -268,9 +270,7 @@ public class PdfController {
             Context context = new Context();
             context.setVariable("jobTicket", jobTicket);
             context.setVariable("images", base64Images);
-
-            String logoPath = new java.io.File("src/main/resources/static/images/thales-logo.png").getAbsolutePath();
-            context.setVariable("logoUrl", "file:" + logoPath);
+            context.setVariable("logoUrl", "file:" + LOGO_PATH);
 
             String html = templateEngine.process("jobTicketWithImages", context);
 
@@ -367,11 +367,14 @@ public class PdfController {
         Context context = new Context();
         context.setVariable("jobTicket", jobTicket);
         context.setVariable("workOrderForReport", workOrderForReport);
-        String logoPath = new java.io.File("src/main/resources/static/images/thales-logo.png").getAbsolutePath();
-        context.setVariable("logoUrl", "file:" + logoPath);
+        
+        // Set the logo URL - use a file URL that the PDF renderer can access
+        String logoPath = new File(LOGO_PATH).toURI().toString();
+        context.setVariable("logoUrl", logoPath);
+        context.setVariable("currentDate", java.time.LocalDateTime.now());
 
         // Process the template with the data
-        String html = templateEngine.process("jobTicket-V2", context);
+        String html = templateEngine.process("jobTicket-V3", context);
 
         // Generate PDF using the service
         byte[] pdfBytes = pdfGenerationService.generatePdfWithWorkOrder(html);

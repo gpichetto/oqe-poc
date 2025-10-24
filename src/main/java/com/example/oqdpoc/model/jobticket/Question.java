@@ -33,6 +33,8 @@ public class Question {
     private String defaultValue;
     private List<String> choices;
     private boolean multipleAnswer;
+    private List<String> documentUrls;
+    private List<String> attachmentContents;
 
     @JsonProperty("uuid")
     public String getUuid() {
@@ -204,6 +206,24 @@ public class Question {
 
     public void setMultipleAnswer(boolean multipleAnswer) {
         this.multipleAnswer = multipleAnswer;
+    }
+
+    @JsonProperty("documentUrls")
+    public List<String> getDocumentUrls() {
+        return documentUrls;
+    }
+
+    public void setDocumentUrls(List<String> documentUrls) {
+        this.documentUrls = documentUrls;
+    }
+
+    @JsonProperty("attachmentContents")
+    public List<String> getAttachmentContents() {
+        return attachmentContents;
+    }
+
+    public void setAttachmentContents(List<String> attachmentContents) {
+        this.attachmentContents = attachmentContents;
     }
 
     @Override
