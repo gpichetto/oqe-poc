@@ -1,33 +1,51 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" 
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:sec="http://www.thymeleaf.org/extras/spring-security" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title th:text="${jobTicket.answers?.title != null} ? ${jobTicket.answers.title} : 'Job Ticket Report Header'"></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title th:text="${jobTicket.answers?.title != null} ? ${jobTicket.answers.title} : 'Job Ticket Report Header'">
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
     <style>
         /* ==================== PAGE SETUP ==================== */
         @page {
+            size: A4;
+            margin: 3cm 1.5cm 2.5cm 1.5cm; /* Increased top margin to add more space below header */
             @top-center {
                 content: element(header);
                 height: 1.5cm;
             }
-            size: A4;
-            margin: 1.5cm 1.5cm 2.5cm 1.5cm;
+            @bottom-center {
+                content: "Page " counter(page) " of " counter(pages);
+                font-family: "Segoe UI", sans-serif;
+                font-size: 9pt;
+                color: #666;
+            }
         }
-        
-        .page-header {
+
+             .page-header {
             position: running(header);
             width: 100%;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem 1rem 0.1rem; /* Minimal bottom padding */
             font-family: 'Segoe UI', sans-serif;
             font-size: 9pt;
             color: #666;
             background: white;
-            border-bottom: 1px solid #eee;
+            height: 1.2cm; /* Reduced height */
+            box-sizing: border-box;
+            /* Removed border from here, using @top-center border instead */
         }
-        
+
+        .page-header table {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-collapse: collapse;
+        }
+
+        /* Add a pseudo-element for the border to ensure it appears in PDF */
+        /* Removed the border line from the header */
+
         /* Only show the header on printed pages */
         @media screen {
             .page-header {
@@ -35,620 +53,655 @@
             }
         }
 
-          @bottom-center {
-            content: "Page " counter(page) " of " counter(pages);
-            font-family: "Segoe UI", sans-serif;
-            font-size: 9pt;
-            color: #666;
-          }
+             :root {
+               --primary-blue: #1a5276;
+               --secondary-blue: #2c7cb8;
+               --accent-blue: #3498db;
+               --text-dark: #2c3e50;
+               --text-muted: #6c757d;
+               --border-light: #dee2e6;
+               --bg-light: #f8f9fa;
+               --bg-highlight: #e6f2ff;
+               --success-green: #27ae60;
+               --warning-yellow: #ffc107;
+             }
+
+             /* ==================== BASE STYLES ==================== */
+             body {
+               font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+               font-size: 11pt;
+               line-height: 1.5;
+               color: var(--text-dark);
+               background-color: white;
+               padding-top: 0;  /* Reset any padding that might interfere with the header */
+             }
+
+             .container {
+               max-width: 100%;
+               padding: 0 2rem;
+             }
+
+             /* ==================== HEADER ==================== */
+             .document-header {
+               color: #2c3e50;  /* Dark text color for better contrast */
+               padding: 1rem 2rem;
+               margin: 0 0 2rem 0;  /* Removed negative margins */
+               page-break-after: avoid;
+               width: 100%;
+               box-sizing: border-box;
+             }
+
+             .header-content {
+               display: flex;
+               justify-content: space-between;
+               align-items: flex-start;
+               gap: 2rem;
+               width: 100%;
+             }
+
+             .header-title {
+               width: 100%;
+             }
+
+             .title-row {
+               display: flex;
+               justify-content: space-between;
+               align-items: center;
+               margin-bottom: 0.25rem;
+             }
+
+             .header-title h1 {
+               color: #2c3e50;  /* Dark text color */
+               font-size: 1.75rem;
+               font-weight: 600;
+               margin: 0;
+               line-height: 1.2;
+               display: inline-block;
+             }
+
+             .header-subtitle {
+               display: inline-block;
+               margin-left: 1.5rem;
+               font-size: 0.9rem;
+               white-space: nowrap;
+               vertical-align: middle;
+             }
+
+             .header-metadata {
+               padding: 1rem 0;
+               margin-top: 1rem;
+             }
+
+             .header-metadata-item {
+               display: flex;
+               justify-content: space-between;
+               margin-bottom: 0.5rem;
+               font-size: 0.9rem;
+             }
+
+             .header-metadata-item:last-child {
+               margin-bottom: 0;
+             }
+
+             .header-metadata-label {
+               font-weight: 600;  /* Slightly bolder */
+               color: #2c3e50;  /* Dark text color */
+               margin-right: 1rem;
+               min-width: 120px;  /* Ensure consistent width */
+               display: inline-block;
+             }
+
+             .header-metadata-value {
+               text-align: right;
+               font-weight: 300;
+             }
+
+             /* ==================== INFO CARDS ==================== */
+             .info-section {
+               margin: 1.5rem 0;
+               page-break-inside: avoid;
+             }
+
+             .info-card {
+               background: white;
+               border: 1px solid var(--border-light);
+               border-radius: 6px;
+               padding: 1.25rem 1.5rem;
+               height: 100%;
+             }
+
+             .info-card-title {
+               font-size: 1rem;
+               font-weight: 600;
+               color: var(--text-dark);
+               margin: 0 0 1rem 0;
+               padding-bottom: 0.5rem;
+               border-bottom: 2px solid var(--accent-blue);
+               text-decoration: underline;
+               text-decoration-color: var(--accent-blue);
+               text-underline-offset: 4px;
+             }
+
+             .info-row {
+               display: flex;
+               padding: 0.4rem 0;
+               border-bottom: 1px solid #f0f0f0;
+             }
+
+             .info-row:last-child {
+               border-bottom: none;
+             }
+
+             .info-label {
+               font-weight: 500;
+               color: var(--text-dark);
+               min-width: 140px;
+               flex-shrink: 0;
+               font-size: 0.95rem;
+             }
+
+             .info-value {
+               color: var(--text-muted);
+               flex: 1;
+               word-break: break-word;
+               font-size: 0.95rem;
+             }
+
+             /* ==================== WORK ORDER SECTION ==================== */
+             .work-order-section {
+               margin: 2rem 0;
+               page-break-inside: avoid;
+             }
+
+             /* Removed work-order specific styles as we're now using the standard info-card structure */
+               padding: 1.5rem;
+               margin: 0; /* Ensure no extra margins */
+             }
+
+             .work-details-box {
+               background: var(--bg-light);
+               border-left: 4px solid var(--accent-blue);
+               padding: 1rem;
+               margin: 0.75rem 0;
+               border-radius: 4px;
+               font-size: 0.95rem;
+               line-height: 1.6;
+             }
+
+             /* ==================== SECTIONS ==================== */
+             .section-container {
+               margin: 2rem 0 0.5rem;
+               page-break-inside: auto;
+             }
+
+             .section-card {
+               background: white;
+               border: 1px solid var(--border-light);
+               border-radius: 6px;
+               margin-bottom: 1.5rem;
+               overflow: hidden;
+               page-break-inside: auto;
+               padding: 1.5rem;
+             }
+
+             .section-header {
+               background: #f8f9fa;  /* Light gray background */
+               color: var(--text-dark);  /* Dark text for better contrast */
+               padding: 1rem 1.5rem;
+               border-bottom: 2px solid var(--secondary-blue);
+               margin: 1.5rem 0 0.5rem 0;
+               border-radius: 4px 4px 0 0;
+             }
+
+             .section-header h4 {
+               color: var(--secondary-blue);  /* Blue text to match the border */
+               font-size: 1.1rem;
+               font-weight: 600;
+               margin: 0;  /* Remove default margins */
+               margin: 0;
+               line-height: 1.3;
+             }
+
+             .section-description {
+               background: var(--bg-highlight);
+               color: var(--text-dark);
+               padding: 0.75rem 1.5rem;
+               font-size: 0.9rem;
+               font-style: italic;
+               border-bottom: 1px solid var(--border-light);
+             }
+
+             .section-body {
+               padding: 0;
+             }
+
+             /* ==================== QUESTIONS TABLE ==================== */
+             .questions-table {
+               width: 100%;
+               border-collapse: collapse;
+             }
+
+             .questions-table tr {
+               border-bottom: 1px solid var(--border-light);
+             }
+
+             .questions-table tr:last-child {
+               border-bottom: none;
+             }
+
+             .question-cell {
+               padding: 1.25rem 1.5rem;
+               vertical-align: top;
+             }
+
+             .question-title-cell {
+               width: 40%;
+               background: #fafbfc;
+             }
+
+             .question-answer-cell {
+               width: 60%;
+               background: white;
+             }
+
+             .question-title {
+               font-weight: 500;
+               color: var(--text-dark);
+               margin-bottom: 0.5rem;
+               font-size: 0.95rem;
+               line-height: 1.4;
+             }
+
+             .question-hint {
+               display: flex;
+               align-items: flex-start;
+               margin-top: 0.5rem;
+               padding: 0.5rem;
+               background: #f5f5f5;  /* Light gray background */
+               border-radius: 4px;
+               font-size: 0.85rem;
+               color: #000000;  /* Black text */
+             }
+
+             .hint-icon {
+               display: inline-block;
+               background: #999999;  /* Darker gray for the icon */
+               color: white;
+               width: 18px;
+               height: 18px;
+               border-radius: 50%;
+               text-align: center;
+               line-height: 18px;
+               font-size: 11px;
+               font-weight: bold;
+               margin-right: 0.5rem;
+               flex-shrink: 0;
+               font-style: normal;
+             }
+
+             .response-content {
+               color: var(--text-dark);
+               font-size: 0.95rem;
+             }
+
+             .no-response {
+               color: var(--text-muted);
+               font-style: italic;
+             }
+
+             /* ==================== CHOICE RESPONSES ==================== */
+             .selected-choice {
+               display: inline-flex;
+               align-items: center;
+               color: #000000;
+               background: #f8f9fa;
+               border: 1px solid #e0e0e0;
+               padding: 0.35rem 0.75rem;
+               border-radius: 4px;
+               margin: 0.25rem 0.25rem 0.25rem 0;
+               font-size: 0.9rem;
+               font-weight: 400;
+             }
+
+             .checkmark {
+               display: inline-block;
+               width: 16px;
+               height: 16px;
+               background: var(--success-green);
+               border-radius: 3px;
+               margin-left: 0.5rem;
+               position: relative;
+             }
+
+             .checkmark::after {
+               content: '';
+               position: absolute;
+               top: 2px;
+               left: 5px;
+               width: 4px;
+               height: 8px;
+               border: solid white;
+               border-width: 0 2px 2px 0;
+               transform: rotate(45deg);
+             }
+
+             /* ==================== SIGNATURE ==================== */
+             .signature-container {
+               font-size: 1rem;
+               margin-bottom: 0.25rem;
+             }
+
+             .signature-role {
+               color: var(--text-muted);
+               font-size: 0.9rem;
+               margin-bottom: 0.5rem;
+             }
+
+             .signature-date {
+               color: var(--text-muted);
+               font-size: 0.85rem;
+             }
+
+             .signature-image-wrapper {
+               border: 2px solid var(--border-light);
+               background: white;
+               padding: 0.5rem;
+               border-radius: 4px;
+               max-width: 220px;
+             }
+
+             .signature-image-wrapper img {
+               max-width: 200px;
+               max-height: 80px;
+               display: block;
+             }
+
+             /* ==================== COMMENT BOX ==================== */
+             .comment-box {
+               background: #fff9e6;
+               border-left: 4px solid var(--warning-yellow);
+               padding: 0.875rem;
+               margin-top: 0.75rem;
+               border-radius: 4px;
+               font-size: 0.9rem;
+             }
+
+             .comment-label {
+               font-weight: 600;
+               color: var(--text-dark);
+               margin-bottom: 0.5rem;
+             }
+
+             /* ==================== ATTACHMENTS ==================== */
+             .attachments-section {
+               margin-top: 1rem;
+               padding-top: 1rem;
+               border-top: 1px dashed var(--border-light);
+             }
+
+             .attachment-label {
+               font-weight: 600;
+               color: var(--text-dark);
+               margin-bottom: 0.5rem;
+               font-size: 0.9rem;
+             }
+
+             .attachment-grid {
+               display: flex;
+               flex-wrap: wrap;
+               gap: 1rem;
+               margin-top: 0.5rem;
+             }
+
+             .attachment-image {
+               max-width: 350px;
+               max-height: 350px;
+               border: 1px solid var(--border-light);
+               border-radius: 4px;
+               padding: 0.25rem;
+               background: white;
+             }
+
+             /* ==================== METADATA BADGES ==================== */
+             .metadata-section {
+               margin-top: 1rem;
+               padding-top: 0.75rem;
+               border-top: 1px dashed var(--border-light);
+             }
+
+             /* Bulleted list styles */
+             .bulleted-list {
+               padding-left: 1.5rem;
+               margin: 0.5rem 0;
+               list-style-type: none;
+             }
+
+             .bulleted-list li {
+               margin-bottom: 0.5rem;
+               position: relative;
+               padding-left: 1.5rem;
+             }
+
+             .bulleted-list li::before {
+               content: "•";
+               position: absolute;
+               left: 0;
+               color: var(--primary-blue);
+               font-weight: bold;
+             }
+
+             .metadata-badge {
+               display: inline-block;
+               background: var(--bg-light);
+               border: 1px solid var(--border-light);
+               color: var(--text-dark);
+               padding: 0.25rem 0.65rem;
+               border-radius: 12px;
+               font-size: 0.8rem;
+               margin: 0.25rem 0.25rem 0.25rem 0;
+             }
+
+             .metadata-key {
+               font-weight: 600;
+               margin-right: 0.25rem;
+             }
+
+             /* ==================== IMAGES SECTION ==================== */
+             .images-section {
+               page-break-before: always;
+             }
+
+             .images-page {
+
+               display: flex;
+               flex-direction: column;
+               padding: 1.5rem 0;
+             }
+
+             .images-header {
+               margin: 0 2rem 2rem 2rem;
+               padding-bottom: 1rem;
+               border-bottom: 2px solid var(--accent-blue);
+             }
+
+             .images-title {
+               font-size: 1.25rem;
+               font-weight: 600;
+               color: var(--text-dark);
+               margin: 0;
+             }
+
+             .image-container {
+               flex-grow: 1;
+               display: flex;
+               align-items: center;
+               justify-content: center;
+               padding: 2rem;
+             }
+
+             .image-wrapper img {
+               max-width: 100%;
+               max-height: 75vh;
+               height: auto;
+               display: block;
+               margin: 0 auto;
+               object-fit: contain;
+               border: 1px solid var(--border-light);
+               border-radius: 4px;
+               box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+             }
+
+             .image-placeholder {
+               background: var(--bg-light);
+               border: 2px dashed var(--border-light);
+               padding: 3rem;
+               text-align: center;
+               color: var(--text-muted);
+               border-radius: 6px;
+               font-style: italic;
+             }
+
+             /* ==================== PRINT OPTIMIZATION ==================== */
+             @media print {
+               body {
+                 background: white;
+                 font-size: 10pt;
+               }
+
+               .container {
+                 padding: 0;
+               }
+
+               .section-card,
+               .info-card,
+               .work-order-card {
+                 box-shadow: none;
+                 page-break-inside: auto;
+               }
+
+               .document-header {
+                 padding: 1.25rem 1.5rem;
+                 margin-bottom: 1.5rem;
+               }
+
+               .header-title h1 {
+                 font-size: 1.5rem;
+               }
+
+               .title-row {
+                 flex-direction: column;
+                 align-items: flex-start;
+               }
+
+               .header-subtitle {
+                 margin: 0.25rem 0 0 0;
+               }
+
+               .info-card,
+               .work-order-body,
+               .section-body {
+                 padding: 1rem;
+               }
+
+               .question-cell {
+                 padding: 0.875rem 1rem;
+               }
+             }
+
+             /* ==================== UTILITIES ==================== */
+             .text-muted { color: var(--text-muted) !important; }
+             .text-dark { color: var(--text-dark) !important; }
+             .mb-0 { margin-bottom: 0 !important; }
+             .mt-1 { margin-top: 0.5rem !important; }
+             .mt-2 { margin-top: 1rem !important; }
+             .d-flex { display: flex !important; }
+             .align-items-center { align-items: center !important; }
+             .gap-2 { gap: 1rem !important; }
+
+        /* Print-specific styles */
+        @media print {
+            @page {
+                margin-top: 3.5cm; /* Increased top margin to push content further down */
+                @top-center {
+                    content: element(header);
+                    height: 1.5cm; /* Header height */
+                    margin-bottom: 1cm; /* Space between header and content */
+                }
+            }
+            .page-header {
+                position: running(header);
+                height: 2cm; /* Increased height to accommodate content */
+                background: white;
+                padding: 0.3cm 1rem 0.1cm; /* Adjusted padding */
+            }
+            .bulleted-list {
+                list-style: disc;
+                padding-left: 1.25rem;
+            }
+            .bulleted-list li::before {
+                content: none !important;
+            }
+            .two-col .col-md-6 {
+                display: inline-block;
+                vertical-align: top;
+                width: 49%;
+            }
         }
 
-        :root {
-          --primary-blue: #1a5276;
-          --secondary-blue: #2c7cb8;
-          --accent-blue: #3498db;
-          --text-dark: #2c3e50;
-          --text-muted: #6c757d;
-          --border-light: #dee2e6;
-          --bg-light: #f8f9fa;
-          --bg-highlight: #e6f2ff;
-          --success-green: #27ae60;
-          --warning-yellow: #ffc107;
+        /* Screen-specific styles */
+        @media screen {
+            .bulleted-list {
+                list-style: none;
+                padding-left: 1.5rem;
+            }
+            .bulleted-list li::before {
+                content: "\2022";
+                margin-right: .5rem;
+            }
         }
 
-        /* ==================== BASE STYLES ==================== */
-        body {
-          font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-          font-size: 11pt;
-          line-height: 1.5;
-          color: var(--text-dark);
-          background-color: white;
-          padding-top: 0;  /* Reset any padding that might interfere with the header */
-        }
-
-        .container {
-          max-width: 100%;
-          padding: 0;
-        }
-
-        /* ==================== HEADER ==================== */
-        .document-header {
-          color: #2c3e50;  /* Dark text color for better contrast */
-          padding: 1rem 2rem;
-          margin: 0 0 2rem 0;  /* Removed negative margins */
-          page-break-after: avoid;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .header-content {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 2rem;
-          width: 100%;
-        }
-
-        .header-title {
-          width: 100%;
-        }
-        
-        .title-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.25rem;
-        }
-        
-        .header-title h1 {
-          color: #2c3e50;  /* Dark text color */
-          font-size: 1.75rem;
-          font-weight: 600;
-          margin: 0;
-          line-height: 1.2;
-          display: inline-block;
-        }
-        
-        .header-subtitle {
-          display: inline-block;
-          margin-left: 1.5rem;
-          font-size: 0.9rem;
-          white-space: nowrap;
-          vertical-align: middle;
-        }
-
-        .header-metadata {
-          padding: 1rem 0;
-          margin-top: 1rem;
-        }
-
-        .header-metadata-item {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 0.5rem;
-          font-size: 0.9rem;
-        }
-
-        .header-metadata-item:last-child {
-          margin-bottom: 0;
-        }
-
-        .header-metadata-label {
-          font-weight: 600;  /* Slightly bolder */
-          color: #2c3e50;  /* Dark text color */
-          margin-right: 1rem;
-          min-width: 120px;  /* Ensure consistent width */
-          display: inline-block;
-        }
-
-        .header-metadata-value {
-          text-align: right;
-          font-weight: 300;
-        }
-
-        /* ==================== INFO CARDS ==================== */
-        .info-section {
-          margin-bottom: 1.5rem;
-          page-break-inside: avoid;
-        }
-
-        .info-card {
-          background: white;
-          border: 1px solid var(--border-light);
-          border-radius: 6px;
-          padding: 1.25rem 1.5rem;
-          height: 100%;
-        }
-
-        .info-card-title {
-          font-size: 1rem;
-          font-weight: 600;
-          color: var(--text-dark);
-          margin: 0 0 1rem 0;
-          padding-bottom: 0.5rem;
-          border-bottom: 2px solid var(--accent-blue);
-        }
-
-        .info-row {
-          display: flex;
-          padding: 0.4rem 0;
-          border-bottom: 1px solid #f0f0f0;
-        }
-
-        .info-row:last-child {
-          border-bottom: none;
-        }
-
-        .info-label {
-          font-weight: 500;
-          color: var(--text-dark);
-          min-width: 140px;
-          flex-shrink: 0;
-          font-size: 0.95rem;
-        }
-
-        .info-value {
-          color: var(--text-muted);
-          flex: 1;
-          word-break: break-word;
-          font-size: 0.95rem;
-        }
-
-        /* ==================== WORK ORDER SECTION ==================== */
-        .work-order-section {
-          margin: 2rem 0;
-          page-break-inside: avoid;
-        }
-
-        .work-order-card {
-          background: white;
-          border: 1px solid var(--border-light);
-          border-radius: 6px;
-          overflow: hidden;
-        }
-
-        .work-order-header {
-          background: var(--bg-highlight);
-          padding: 0.75rem 1.5rem;
-          border-bottom: 2px solid var(--accent-blue);
-        }
-
-        .work-order-title {
-          font-size: 1.1rem;
-          font-weight: 600;
-          color: var(--text-dark);
-          margin: 0;
-        }
-
-        .work-order-body {
-          padding: 1.5rem;
-        }
-
-        .work-details-box {
-          background: var(--bg-light);
-          border-left: 4px solid var(--accent-blue);
-          padding: 1rem;
-          margin: 0.75rem 0;
-          border-radius: 4px;
-          font-size: 0.95rem;
-          line-height: 1.6;
-        }
-
-        /* ==================== SECTIONS ==================== */
-        .section-container {
-          margin: 2rem 0;
-          page-break-inside: avoid;
-        }
-
-        .section-card {
-          background: white;
-          border: 1px solid var(--border-light);
-          border-radius: 6px;
-          margin-bottom: 1.5rem;
-          overflow: hidden;
-          page-break-inside: avoid;
-        }
-
-        .section-header {
-          background: #f8f9fa;  /* Light gray background */
-          color: var(--text-dark);  /* Dark text for better contrast */
-          padding: 1rem 1.5rem;
-          border-bottom: 2px solid var(--secondary-blue);
-          margin: 1.5rem 0 1rem 0;
-          border-radius: 4px 4px 0 0;
-        }
-
-        .section-header h4 {
-          color: var(--secondary-blue);  /* Blue text to match the border */
-          font-size: 1.1rem;
-          font-weight: 600;
-          margin: 0;  /* Remove default margins */
-          margin: 0;
-          line-height: 1.3;
-        }
-
-        .section-description {
-          background: var(--bg-highlight);
-          color: var(--text-dark);
-          padding: 0.75rem 1.5rem;
-          font-size: 0.9rem;
-          font-style: italic;
-          border-bottom: 1px solid var(--border-light);
-        }
-
-        .section-body {
-          padding: 0;
-        }
-
-        /* ==================== QUESTIONS TABLE ==================== */
+        /* Common styles */
+        .signature-image-wrapper,
         .questions-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        .questions-table tr {
-          border-bottom: 1px solid var(--border-light);
-        }
-
-        .questions-table tr:last-child {
-          border-bottom: none;
-        }
-
-        .question-cell {
-          padding: 1.25rem 1.5rem;
-          vertical-align: top;
-        }
-
-        .question-title-cell {
-          width: 40%;
-          background: #fafbfc;
-        }
-
-        .question-answer-cell {
-          width: 60%;
-          background: white;
-        }
-
-        .question-title {
-          font-weight: 500;
-          color: var(--text-dark);
-          margin-bottom: 0.5rem;
-          font-size: 0.95rem;
-          line-height: 1.4;
-        }
-
-        .question-hint {
-          display: flex;
-          align-items: flex-start;
-          margin-top: 0.5rem;
-          padding: 0.5rem;
-          background: #f5f5f5;  /* Light gray background */
-          border-radius: 4px;
-          font-size: 0.85rem;
-          color: #000000;  /* Black text */
-        }
-
-        .hint-icon {
-          display: inline-block;
-          background: #999999;  /* Darker gray for the icon */
-          color: white;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          text-align: center;
-          line-height: 18px;
-          font-size: 11px;
-          font-weight: bold;
-          margin-right: 0.5rem;
-          flex-shrink: 0;
-          font-style: normal;
-        }
-
-        .response-content {
-          color: var(--text-dark);
-          font-size: 0.95rem;
-        }
-
-        .no-response {
-          color: var(--text-muted);
-          font-style: italic;
-        }
-
-        /* ==================== CHOICE RESPONSES ==================== */
-        .selected-choice {
-          display: inline-flex;
-          align-items: center;
-          color: #000000;
-          background: #f8f9fa;
-          border: 1px solid #e0e0e0;
-          padding: 0.35rem 0.75rem;
-          border-radius: 4px;
-          margin: 0.25rem 0.25rem 0.25rem 0;
-          font-size: 0.9rem;
-          font-weight: 400;
-        }
-
-        .checkmark {
-          display: inline-block;
-          width: 16px;
-          height: 16px;
-          background: var(--success-green);
-          border-radius: 3px;
-          margin-left: 0.5rem;
-          position: relative;
-        }
-
-        .checkmark::after {
-          content: '';
-          position: absolute;
-          top: 2px;
-          left: 5px;
-          width: 4px;
-          height: 8px;
-          border: solid white;
-          border-width: 0 2px 2px 0;
-          transform: rotate(45deg);
-        }
-
-        /* ==================== SIGNATURE ==================== */
-        .signature-container {
-          font-size: 1rem;
-          margin-bottom: 0.25rem;
-        }
-
-        .signature-role {
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .signature-date {
-          color: var(--text-muted);
-          font-size: 0.85rem;
-        }
-
-        .signature-image-wrapper {
-          border: 2px solid var(--border-light);
-          background: white;
-          padding: 0.5rem;
-          border-radius: 4px;
-          max-width: 220px;
-        }
-
-        .signature-image-wrapper img {
-          max-width: 200px;
-          max-height: 80px;
-          display: block;
-        }
-
-        /* ==================== COMMENT BOX ==================== */
-        .comment-box {
-          background: #fff9e6;
-          border-left: 4px solid var(--warning-yellow);
-          padding: 0.875rem;
-          margin-top: 0.75rem;
-          border-radius: 4px;
-          font-size: 0.9rem;
-        }
-
-        .comment-label {
-          font-weight: 600;
-          color: var(--text-dark);
-          margin-bottom: 0.5rem;
-        }
-
-        /* ==================== ATTACHMENTS ==================== */
-        .attachments-section {
-          margin-top: 1rem;
-          padding-top: 1rem;
-          border-top: 1px dashed var(--border-light);
-        }
-
-        .attachment-label {
-          font-weight: 600;
-          color: var(--text-dark);
-          margin-bottom: 0.5rem;
-          font-size: 0.9rem;
-        }
-
-        .attachment-grid {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 1rem;
-          margin-top: 0.5rem;
-        }
-
-        .attachment-image {
-          max-width: 350px;
-          max-height: 350px;
-          border: 1px solid var(--border-light);
-          border-radius: 4px;
-          padding: 0.25rem;
-          background: white;
-        }
-
-        /* ==================== METADATA BADGES ==================== */
-        .metadata-section {
-          margin-top: 1rem;
-          padding-top: 0.75rem;
-          border-top: 1px dashed var(--border-light);
-        }
-
-        /* Bulleted list styles */
-        .bulleted-list {
-          padding-left: 1.5rem;
-          margin: 0.5rem 0;
-          list-style-type: none;
-        }
-        
-        .bulleted-list li {
-          margin-bottom: 0.5rem;
-          position: relative;
-          padding-left: 1.5rem;
-        }
-        
-        .bulleted-list li::before {
-          content: "•";
-          position: absolute;
-          left: 0;
-          color: var(--primary-blue);
-          font-weight: bold;
-        }
-
-        .metadata-badge {
-          display: inline-block;
-          background: var(--bg-light);
-          border: 1px solid var(--border-light);
-          color: var(--text-dark);
-          padding: 0.25rem 0.65rem;
-          border-radius: 12px;
-          font-size: 0.8rem;
-          margin: 0.25rem 0.25rem 0.25rem 0;
-        }
-
-        .metadata-key {
-          font-weight: 600;
-          margin-right: 0.25rem;
-        }
-
-        /* ==================== IMAGES SECTION ==================== */
-        .images-section {
-          page-break-before: always;
-        }
-
-        .images-page {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          padding: 1.5rem 0;
-        }
-
-        .images-header {
-          margin: 0 2rem 2rem 2rem;
-          padding-bottom: 1rem;
-          border-bottom: 2px solid var(--accent-blue);
-        }
-
-        .images-title {
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: var(--text-dark);
-          margin: 0;
-        }
-
-        .image-container {
-          flex-grow: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 2rem;
+            page-break-inside: avoid;
         }
 
         .image-wrapper img {
-          max-width: 100%;
-          max-height: 75vh;
-          height: auto;
-          display: block;
-          margin: 0 auto;
-          object-fit: contain;
-          border: 1px solid var(--border-light);
-          border-radius: 4px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 100%;
+            max-height: 70vh;
+            height: auto;
+            object-fit: contain;
         }
 
-        .image-placeholder {
-          background: var(--bg-light);
-          border: 2px dashed var(--border-light);
-          padding: 3rem;
-          text-align: center;
-          color: var(--text-muted);
-          border-radius: 6px;
-          font-style: italic;
+        /* Grid fallbacks */
+        .row {
+            display: block;
         }
-
-        /* ==================== PRINT OPTIMIZATION ==================== */
-        @media print {
-          body {
-            background: white;
-            font-size: 10pt;
-          }
-
-          .container {
-            padding: 0;
-          }
-
-          .section-card,
-          .info-card,
-          .work-order-card {
-            box-shadow: none;
-            page-break-inside: avoid;
-          }
-
-          .document-header {
-            padding: 1.25rem 1.5rem;
-            margin-bottom: 1.5rem;
-          }
-
-          .header-title h1 {
-            font-size: 1.5rem;
-          }
-          
-          .title-row {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          
-          .header-subtitle {
-            margin: 0.25rem 0 0 0;
-          }
-
-          .info-card,
-          .work-order-body,
-          .section-body {
-            padding: 1rem;
-          }
-
-          .question-cell {
-            padding: 0.875rem 1rem;
-          }
+        .col-md-6 {
+            width: 100%;
         }
-
-        /* ==================== UTILITIES ==================== */
-        .text-muted { color: var(--text-muted) !important; }
-        .text-dark { color: var(--text-dark) !important; }
-        .mb-0 { margin-bottom: 0 !important; }
-        .mt-1 { margin-top: 0.5rem !important; }
-        .mt-2 { margin-top: 1rem !important; }
-        .d-flex { display: flex !important; }
-        .align-items-center { align-items: center !important; }
-        .gap-2 { gap: 1rem !important; }
     </style>
 </head>
 <body>
-    <!-- Page Header (repeats on each printed page) -->
-    <div class="page-header">
-        <table width="100%" cellspacing="0" cellpadding="0" border="0">
-            <tr>
-                <td width="50%" style="text-align: left;">
-                    Job Ticket Report
-                </td>
-                <td width="50%" style="text-align: right;">
-                    Generated: <span th:text="${#temporals.format(currentDate, 'MMM dd, yyyy') + ' at ' + #temporals.format(currentDate, 'HH:mm')}"></span>
-                </td>
-            </tr>
-        </table>
-    </div>
-
+<!-- Page Header (repeats on each printed page) -->
+<div class="page-header">
+    <table border="0" cellpadding="0" cellspacing="0" width="100%">
+        <tr>
+            <td style="text-align: left;" width="50%">
+                Job Ticket Report
+            </td>
+            <td style="text-align: right;" width="50%">
+                Generated:
+                <span th:text="${#temporals.format(currentDate, 'MMM dd, yyyy') + ' at ' + #temporals.format(currentDate, 'HH:mm')}">
+      </span>
+            </td>
+        </tr>
+    </table>
+</div>
 <!-- LOGO -->
 <div class="container" style="padding: 2rem 2rem 0 2rem; text-align: center;">
-    <img
-        th:if="${logoUrl}"
-        th:src="${logoUrl}"
-        alt="Company Logo"
-        style="max-height: 80px; margin-bottom: 1rem; margin-top: 1rem;"
-    />
+    <img alt="Company Logo" style="max-height: 80px; margin-bottom: 1rem; margin-top: 1rem;" th:if="${logoUrl}" th:src="${logoUrl}"/>
 </div>
-
 <!-- HEADER -->
 <div class="document-header">
     <div class="header-content">
@@ -661,332 +714,396 @@
         </div>
         <div class="header-metadata">
             <div class="header-metadata-item">
-                <span class="info-label">Checklist ID:</span>
-                <span class="info-value" th:text="${jobTicket.id}">N/A</span>
+      <span class="info-label">
+       Checklist ID:
+      </span>
+                <span class="info-value" th:text="${jobTicket.id}">
+       N/A
+      </span>
             </div>
             <div class="header-metadata-item" th:if="${jobTicket?.answers?.metadata?.additional?.workOrder?.workOrderNum != null}">
-                <span class="info-label">Work Order:</span>
-                <span class="info-value" th:text="${jobTicket.answers.metadata.additional.workOrder.workOrderNum}">N/A</span>
+      <span class="info-label">
+       Work Order:
+      </span>
+                <span class="info-value" th:text="${jobTicket.answers.metadata.additional.workOrder.workOrderNum}">
+       N/A
+      </span>
             </div>
             <div class="header-metadata-item" th:if="${jobTicket?.answers?.metadata?.additional?.workOrder?.title != null}">
-                <span class="info-label">Word Order Title:</span>
-                <span class="info-value" th:text="${jobTicket.answers.metadata.additional.workOrder.title}">N/A</span>
+      <span class="info-label">
+       Work Order Title:
+      </span>
+                <span class="info-value" th:text="${jobTicket.answers.metadata.additional.workOrder.title}">
+       N/A
+      </span>
             </div>
         </div>
     </div>
 </div>
-
-<div class="container" style="padding: 0 2rem;">
-
+<div class="container">
     <!-- REPORT & EQUIPMENT INFO -->
     <div class="info-section">
         <div class="row g-3">
             <div class="col-md-6">
                 <div class="info-card">
-                    <h5 class="info-card-title">Report Information</h5>
+                    <h5 class="info-card-title">
+                        Report Information
+                    </h5>
                     <div class="info-row" th:if="${jobTicket.createdAt}">
-                        <div class="info-label">Date and Time:</div>
-                        <div class="info-value" th:text="${#temporals.format(jobTicket.createdAt, 'yyyy-MM-dd HH:mm')}"></div>
+                        <div class="info-label">
+                            Date and Time:
+                        </div>
+                        <div class="info-value" th:text="${#temporals.format(jobTicket.createdAt, 'yyyy-MM-dd HH:mm')}">
+                        </div>
                     </div>
                     <div class="info-row" th:if="${jobTicket.user?.email}">
-                        <div class="info-label">Author:</div>
-                        <div class="info-value" th:text="${jobTicket.user.email}"></div>
+                        <div class="info-label">
+                            Author:
+                        </div>
+                        <div class="info-value" th:text="${jobTicket.user.email}">
+                        </div>
                     </div>
                 </div>
             </div>
-
             <div class="col-md-6">
                 <div class="info-card">
-                    <h5 class="info-card-title">Equipment</h5>
+                    <h5 class="info-card-title">
+                        Equipment
+                    </h5>
                     <div class="info-row" th:if="${jobTicket.answers?.metadata?.additional?.asset?.designation}">
-                        <div class="info-label">Designation:</div>
-                        <div class="info-value" th:text="${jobTicket.answers.metadata.additional.asset.designation}"></div>
-                    </div>
-                    <div class="info-row">
-                        <div class="info-label">Part Number:</div>
-                        <div class="info-value">
-              <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.partNumber != null}"
-                    th:text="${jobTicket.answers.metadata.additional.asset.partNumber}"></span>
-                            <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.partNumber == null}">—</span>
+                        <div class="info-label">
+                            Designation:
+                        </div>
+                        <div class="info-value" th:text="${jobTicket.answers.metadata.additional.asset.designation}">
                         </div>
                     </div>
                     <div class="info-row">
-                        <div class="info-label">Serial Number:</div>
+                        <div class="info-label">
+                            Part Number:
+                        </div>
                         <div class="info-value">
-              <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber != null}"
-                    th:text="${jobTicket.answers.metadata.additional.asset.serialNumber}"></span>
-                            <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber == null}">—</span>
+         <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.partNumber != null}" th:text="${jobTicket.answers.metadata.additional.asset.partNumber}">
+         </span>
+                            <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.partNumber == null}">
+          —
+         </span>
+                        </div>
+                    </div>
+                    <div class="info-row">
+                        <div class="info-label">
+                            Serial Number:
+                        </div>
+                        <div class="info-value">
+         <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber != null and jobTicket.answers.metadata.additional.asset.serialNumber != ''}" th:text="${jobTicket.answers.metadata.additional.asset.serialNumber}">
+         </span>
+                            <span th:if="${jobTicket.answers?.metadata?.additional?.asset?.serialNumber == null or jobTicket.answers.metadata.additional.asset.serialNumber == ''}">
+          —
+         </span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- WORK ORDER SECTION -->
-    <div th:if="${workOrderForReport != null}" class="work-order-section">
-        <div class="work-order-card">
-            <div class="work-order-header">
-                <h5 class="info-card-title">Work Order Information</h5>
-            </div>
-            <div class="work-order-body">
-                <div class="row">
-                    <!-- Left Column -->
-                    <div class="col-md-6">
-                        <div class="info-row">
-                            <div class="info-label">Maximo WO Number:</div>
-                            <div class="info-value" th:text="${workOrderForReport.wonum} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Description:</div>
-                            <div class="info-value" th:text="${workOrderForReport.description} ?: '—'"></div>
-                        </div>
-                        <div class="info-row" th:if="${workOrderForReport.longDescription}">
-                            <div class="info-label">Work Details:</div>
-                            <div class="info-value">
-                                <ul class="bulleted-list">
-                                    <li th:each="item : ${#strings.arraySplit(workOrderForReport.longDescription, ',')}" 
-                                        th:if="${#strings.trim(item)} != ''"
-                                        th:text="${#strings.trim(item) + (item.endsWith('.') ? '' : '.')}">
-                                    </li>
-                                </ul>
+    <div class="info-section" th:if="${workOrderForReport != null}">
+        <div class="row g-3">
+            <div class="col-12">
+                <div class="info-card">
+                    <h5 class="info-card-title">
+                        Work Order Information
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="info-row">
+                                <div class="info-label">
+                                    Maximo WO Number:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.wonum} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    Description:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.description} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row" th:if="${workOrderForReport.longDescription}">
+                                <div class="info-label">
+                                    Work Details:
+                                </div>
+                                <div class="info-value">
+                                    <ul class="bulleted-list">
+                                        <li th:each="item : ${#strings.arraySplit(workOrderForReport.longDescription, ',')}" th:if="${#strings.trim(item)} != ''" th:text="${#strings.trim(item) + (item.endsWith('.') ? '' : '.')}">
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    Maximo Equipment:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.assetNum} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    Work Type:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.workType} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    Vendor:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.vendor} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    Scheduled Start:
+                                </div>
+                                <div class="info-value">
+                                    <span th:if="${workOrderForReport.scheduledStart != null}" th:text="${#temporals.format(workOrderForReport.scheduledStart, 'MMM dd, yyyy HH:mm')}">
+                                    </span>
+                                    <span th:if="${workOrderForReport.scheduledStart == null}">
+                                        —
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    Scheduled Finish:
+                                </div>
+                                <div class="info-value">
+                                    <span th:if="${workOrderForReport.scheduledFinish != null}" th:text="${#temporals.format(workOrderForReport.scheduledFinish, 'MMM dd, yyyy HH:mm')}">
+                                    </span>
+                                    <span th:if="${workOrderForReport.scheduledFinish == null}">
+                                        —
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                        <div class="info-row">
-                            <div class="info-label">Maximo Equipment:</div>
-                            <div class="info-value" th:text="${workOrderForReport.assetNum} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Work Type:</div>
-                            <div class="info-value" th:text="${workOrderForReport.workType} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Vendor:</div>
-                            <div class="info-value" th:text="${workOrderForReport.vendor} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Scheduled Start:</div>
-                            <div class="info-value">
-                <span th:if="${workOrderForReport.scheduledStart != null}"
-                      th:text="${#temporals.format(workOrderForReport.scheduledStart, 'MMM dd, yyyy HH:mm')}"></span>
-                                <span th:if="${workOrderForReport.scheduledStart == null}">—</span>
+                        <!-- Right Column -->
+                        <div class="col-md-6">
+                            <div class="info-row">
+                                <div class="info-label">
+                                    DRMIS Notification:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.n1n9} ?: '—'">
+                                </div>
                             </div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">Scheduled Finish:</div>
-                            <div class="info-value">
-                <span th:if="${workOrderForReport.scheduledFinish != null}"
-                      th:text="${#temporals.format(workOrderForReport.scheduledFinish, 'MMM dd, yyyy HH:mm')}"></span>
-                                <span th:if="${workOrderForReport.scheduledFinish == null}">—</span>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    DRMIS ND:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.and} ?: '—'">
+                                </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Right Column -->
-                    <div class="col-md-6">
-                        <div class="info-row">
-                            <div class="info-label">DRMIS Notification:</div>
-                            <div class="info-value" th:text="${workOrderForReport.n1n9} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">DRMIS ND:</div>
-                            <div class="info-value" th:text="${workOrderForReport.and} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">DRMIS Required Start:</div>
-                            <div class="info-value">
-                <span th:if="${workOrderForReport.callDate != null}"
-                      th:text="${#temporals.format(workOrderForReport.callDate, 'MMM dd, yyyy HH:mm')}"></span>
-                                <span th:if="${workOrderForReport.callDate == null}">—</span>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    DRMIS Required Start:
+                                </div>
+                                <div class="info-value">
+          <span th:if="${workOrderForReport.callDate != null}" th:text="${#temporals.format(workOrderForReport.callDate, 'MMM dd, yyyy HH:mm')}">
+          </span>
+                                    <span th:if="${workOrderForReport.callDate == null}">
+           —
+          </span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">CFTO:</div>
-                            <div class="info-value" th:text="${workOrderForReport.cfto} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">DRMIS Description:</div>
-                            <div class="info-value" th:text="${workOrderForReport.additionalDescription} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">DRMIS Maint. Plan:</div>
-                            <div class="info-value" th:text="${workOrderForReport.amountCompletedPlan} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">NSC?:</div>
-                            <div class="info-value" th:text="${workOrderForReport.answerComplete} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">DRMIS Notif. Date:</div>
-                            <div class="info-value">
-                <span th:if="${workOrderForReport.answerDate != null}"
-                      th:text="${#temporals.format(workOrderForReport.answerDate, 'MMM dd, yyyy HH:mm')}"></span>
-                                <span th:if="${workOrderForReport.answerDate == null}">—</span>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    CFTO:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.cfto} ?: '—'">
+                                </div>
                             </div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">DRMIS Notif. From:</div>
-                            <div class="info-value" th:text="${workOrderForReport.answerFrom} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">DRMIS Notif. To:</div>
-                            <div class="info-value" th:text="${workOrderForReport.answerTo} ?: '—'"></div>
-                        </div>
-                        <div class="info-row">
-                            <div class="info-label">FER OPDEF Number:</div>
-                            <div class="info-value" th:text="${workOrderForReport.operationDefinition} ?: '—'"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
+                            <div class="info-row">
+                                <div class="info-label">
+                                    DRMIS Description:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.additionalDescription} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    DRMIS Maint. Plan:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.amountCompletedPlan} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    NSC?:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.answerComplete} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    DRMIS Notif. Date:
+                                </div>
+                                <div class="info-value">
+          <span th:if="${workOrderForReport.answerDate != null}" th:text="${#temporals.format(workOrderForReport.answerDate, 'MMM dd, yyyy HH:mm')}">
+          </span>
+                                    <span th:if="${workOrderForReport.answerDate == null}">
+           —
+          </span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    DRMIS Notif. From:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.answerFrom} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    DRMIS Notif. To:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.answerTo} ?: '—'">
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    FER OPDEF Number:
+                                </div>
+                                <div class="info-value" th:text="${workOrderForReport.operationDefinition} ?: '—'">
+                                </div>
+                            </div>
+                        </div> <!-- Close col-md-6 -->
+                    </div> <!-- Close row -->
+                </div> <!-- Close info-card -->
+            </div> <!-- Close col-12 -->
+        </div> <!-- Close row g-3 -->
+    </div> <!-- Close info-section -->
     <!-- SECTIONS -->
-    <div th:if="${jobTicket.answers?.sections != null and !jobTicket.answers.sections.empty}" class="section-container">
-        <div th:each="section : ${jobTicket.answers.sections}" class="section-card">
-
+    <div class="section-container" th:if="${jobTicket.answers?.sections != null and !jobTicket.answers.sections.empty}">
+        <div class="section-card" th:each="section : ${jobTicket.answers.sections}">
             <!-- Section Header -->
             <div class="section-header">
-                <h4 th:text="${section?.title != null ? section.title : 'Untitled Section'}"></h4>
+                <h4 th:text="${section?.title != null ? section.title : 'Untitled Section'}">
+                </h4>
             </div>
-
             <!-- Section Description -->
-            <div th:if="${section?.description != null and section.description.length() > 0}"
-                 class="section-description"
-                 th:text="${section.description}"></div>
-
+            <div class="section-description" th:if="${section?.description != null and section.description.length() &gt; 0}" th:text="${section.description}">
+            </div>
             <!-- Questions -->
             <div class="section-body">
                 <table class="questions-table">
                     <tbody>
                     <tr th:each="question : ${section.questions}">
-
                         <!-- Question Title Column -->
                         <td class="question-cell question-title-cell">
-                            <div class="question-title" th:text="${question.title}">Question text</div>
-
+                            <div class="question-title" th:text="${question.title}">
+                                Question text
+                            </div>
                             <!-- Hint -->
-                            <div th:if="${question.hint != null and question.hint != ''}" class="question-hint">
-                                <span class="hint-icon">i</span>
-                                <span th:text="${question.hint}"></span>
+                            <div class="question-hint" th:if="${question.hint != null and question.hint != ''}">
+           <span class="hint-icon">
+            i
+           </span>
+                                <span th:text="${question.hint}">
+           </span>
                             </div>
                         </td>
-
                         <!-- Answer Column -->
                         <td class="question-cell question-answer-cell">
-
                             <!-- TEXT/NUMBER/DATE Response -->
-                            <div th:if="${question.type == 'text' or question.type == 'number' or question.type == 'date'}"
-                                 class="response-content">
+                            <div class="response-content" th:if="${question.type == 'text' or question.type == 'number' or question.type == 'date'}">
                                 <div th:if="${question.response != null}">
-                                    <div th:if="${question.format == 'paragraph'}"
-                                         style="white-space: pre-line"
-                                         th:text="${question.response}"></div>
-                                    <span th:if="${question.format != 'paragraph'}"
-                                          th:text="${question.response}"></span>
+                                    <div style="white-space: pre-line" th:if="${question.format == 'paragraph'}" th:text="${question.response}">
+                                    </div>
+                                    <span th:if="${question.format != 'paragraph'}" th:text="${question.response}">
+            </span>
                                 </div>
-                                <div th:if="${question.response == null or question.response == ''}"
-                                     class="no-response">
+                                <div class="no-response" th:if="${question.response == null or question.response == ''}">
                                     No response provided
                                 </div>
                             </div>
-
                             <!-- MULTIPLE CHOICE Response -->
-                            <div th:if="${question.type == 'multiple_choice' or question.type == 'choice' or question.type == 'checkbox' or question.type == 'multiple-choice'}"
-                                 class="response-content">
+                            <div class="response-content" th:if="${question.type == 'multiple_choice' or question.type == 'choice' or question.type == 'checkbox' or question.type == 'multiple-choice'}">
                                 <div th:if="${question.response != null and !#strings.isEmpty(question.response.toString())}">
                                     <!-- Array responses -->
-                                    <div th:if="${#lists.size(question.response) > 0 or #arrays.length(question.response) > 0}">
-                                        <div th:each="resp : ${#lists.size(question.response) > 0 ? question.response : #arrays.asList(question.response)}"
-                                             class="selected-choice">
-                                            <span th:text="${resp}"></span>
-                                            <span class="checkmark"></span>
+                                    <div th:if="${#lists.size(question.response) &gt; 0 or #arrays.length(question.response) &gt; 0}">
+                                        <div class="selected-choice" th:each="resp : ${#lists.size(question.response) &gt; 0 ? question.response : #arrays.asList(question.response)}">
+              <span th:text="${resp}">
+              </span>
+                                            <span class="checkmark">
+              </span>
                                         </div>
                                     </div>
                                     <!-- Single string response -->
-                                    <div th:if="${(question.response != null) and (question.response.getClass().getSimpleName() == 'String') and (question.response != '')}"
-                                         class="selected-choice">
-                                        <span th:text="${question.response}"></span>
-                                        <span class="checkmark"></span>
+                                    <div class="selected-choice" th:if="${(question.response != null) and (question.response.getClass().getSimpleName() == 'String') and (question.response != '')}">
+             <span th:text="${question.response}">
+             </span>
+                                        <span class="checkmark">
+             </span>
                                     </div>
                                 </div>
-                                <span th:if="${question.response == null or #strings.isEmpty(question.response.toString())}"
-                                      class="no-response">
-                    No selection made
-                  </span>
+                                <span class="no-response" th:if="${question.response == null or #strings.isEmpty(question.response.toString())}">
+            No selection made
+           </span>
                             </div>
-
                             <!-- SIGNATURE Response -->
-                            <div th:if="${question != null and question.type != null and question.type.toString() == 'signature'}"
-                                 class="response-content">
+                            <div class="response-content" th:if="${question != null and question.type != null and question.type.toString() == 'signature'}">
                                 <div class="signature-container">
                                     <div class="signature-details">
-                                        <div class="signature-name"
-                                             th:text="${question.response?.name != null ? question.response.name : 'Not signed'}"></div>
-                                        <div th:if="${question.response?.role}"
-                                             class="signature-role"
-                                             th:text="${question.response.role}"></div>
-                                        <div th:if="${question.signatureDate}"
-                                             class="signature-date">
-                                            Signed on <span th:text="${#temporals.format(question.signatureDate, 'MMM dd, yyyy HH:mm')}"></span>
+                                        <div class="signature-name" th:text="${question.response?.name != null ? question.response.name : 'Not signed'}">
+                                        </div>
+                                        <div class="signature-role" th:if="${question.response?.role}" th:text="${question.response.role}">
+                                        </div>
+                                        <div class="signature-date" th:if="${question.signatureDate}">
+                                            Signed on
+                                            <span th:text="${#temporals.format(question.signatureDate, 'MMM dd, yyyy HH:mm')}">
+              </span>
                                         </div>
                                     </div>
-                                    <div th:if="${question.response?.file}"
-                                         class="signature-image-wrapper">
-                                        <img th:with="fileData=${question.response.file.startsWith('data:') ? question.response.file : 'data:image/png;base64,' + question.response.file}"
-                                             th:src="${fileData}"
-                                             alt="Signature" />
+                                    <div class="signature-image-wrapper" th:if="${question.response?.file}">
+                                        <img alt="Signature" th:src="${fileData}" th:with="fileData=${question.response.file.startsWith('data:') ? question.response.file : 'data:image/png;base64,' + question.response.file}"/>
                                     </div>
                                 </div>
                             </div>
-
                             <!-- FILE Response -->
-                            <div th:if="${question != null and question.type != null and question.type.toString() == 'file' and question.response != null}"
-                                 class="response-content">
+                            <div class="response-content" th:if="${question != null and question.type != null and question.type.toString() == 'file' and question.response != null}">
                                 <div th:if="${question.response.getClass().isArray() or question.response instanceof java.util.List}">
-                                    <div th:each="file, stat : ${question.response}" style="margin-bottom: 0.5rem;">
-                                        <a th:if="${file.url != null}"
-                                           th:href="${file.url}"
-                                           th:text="${file.name != null ? file.name : 'File ' + (stat.index + 1)}"
-                                           target="_blank"
-                                           style="color: var(--accent-blue); text-decoration: none;"></a>
-                                        <span th:if="${file.size != null}"
-                                              class="text-muted"
-                                              style="margin-left: 0.5rem;"
-                                              th:text="'(' + ${file.size} + ' KB)'"></span>
+                                    <div style="margin-bottom: 0.5rem;" th:each="file, stat : ${question.response}">
+                                        <a style="color: var(--accent-blue); text-decoration: none;" target="_blank" th:href="${file.url}" th:if="${file.url != null}" th:text="${file.name != null ? file.name : 'File ' + (stat.index + 1)}">
+                                        </a>
+                                        <span class="text-muted" style="margin-left: 0.5rem;" th:if="${file.size != null}" th:text="'(' + ${file.size} + ' KB)'">
+             </span>
                                     </div>
                                 </div>
                             </div>
-
                             <!-- Comment -->
-                            <div th:if="${question.comment and question.commentContent != null and !#strings.isEmpty(question.commentContent)}"
-                                 class="comment-box">
-                                <div class="comment-label">Comment:</div>
-                                <div th:utext="${question.commentContent}"></div>
-                            </div>
-
-                            <!-- Attachments -->
-                            <div th:if="${question.attachmentContents != null and not #lists.isEmpty(question.attachmentContents)}"
-                                 class="attachments-section">
-                                <div class="attachment-label">Attachments:</div>
-                                <div class="attachment-grid">
-                                    <img th:each="attachment : ${question.attachmentContents}"
-                                         th:src="${attachment}"
-                                         alt="Attachment"
-                                         class="attachment-image" />
+                            <div class="comment-box" th:if="${question.comment and question.commentContent != null and !#strings.isEmpty(question.commentContent)}">
+                                <div class="comment-label">
+                                    Comment:
+                                </div>
+                                <div th:utext="${question.commentContent}">
                                 </div>
                             </div>
-
+                            <!-- Attachments -->
+                            <div class="attachments-section" th:if="${question.attachmentContents != null and not #lists.isEmpty(question.attachmentContents)}">
+                                <div class="attachment-label">
+                                    Attachments:
+                                </div>
+                                <div class="attachment-grid">
+                                    <img alt="Attachment" class="attachment-image" th:each="attachment : ${question.attachmentContents}" th:src="${attachment}"/>
+                                </div>
+                            </div>
                             <!-- Metadata -->
-                            <div th:if="${question.metadata != null and not question.metadata.isEmpty()}"
-                                 class="metadata-section">
-                  <span th:each="entry : ${question.metadata.entrySet()}"
-                        th:if="${entry != null and entry.value != null and entry.value != ''}"
-                        class="metadata-badge">
-                    <span class="metadata-key" th:text="${entry.key} + ':'"></span>
-                    <span th:text="${entry.value}"></span>
-                  </span>
+                            <div class="metadata-section" th:if="${question.metadata != null and not question.metadata.isEmpty()}">
+           <span class="metadata-badge" th:each="entry : ${question.metadata.entrySet()}" th:if="${entry != null and entry.value != null and entry.value != ''}">
+            <span class="metadata-key" th:text="${entry.key} + ':'">
+            </span>
+            <span th:text="${entry.value}">
+            </span>
+           </span>
                             </div>
                         </td>
                     </tr>
@@ -995,43 +1112,32 @@
             </div>
         </div>
     </div>
-
 </div>
-
 <!-- IMAGES SECTION -->
-<div th:if="${not #lists.isEmpty(images)}" class="images-section">
-
+<div class="images-section" th:if="${not #lists.isEmpty(images)}">
     <!-- First Image -->
     <div class="images-page">
         <div class="images-header">
-            <h5 class="images-title">Attachments</h5>
+            <h5 class="images-title">
+                Attachments
+            </h5>
         </div>
         <div class="image-container">
             <div class="image-wrapper">
-                <img th:if="${images[0] != null and images[0] != ''}"
-                     th:src="${images[0]}"
-                     alt="Image 1" />
-                <div th:if="${images[0] == null or images[0] == ''}"
-                     class="image-placeholder">
+                <img alt="Image 1" th:if="${images[0] != null and images[0] != ''}" th:src="${images[0]}"/>
+                <div class="image-placeholder" th:if="${images[0] == null or images[0] == ''}">
                     [Image not available]
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Remaining Images -->
-    <div th:if="${#lists.size(images) > 1}">
-        <div th:each="image, iter : ${images}"
-             th:if="${iter.index > 0}"
-             class="images-page"
-             style="page-break-before: always;">
+    <div th:if="${#lists.size(images) &gt; 1}">
+        <div class="images-page" style="page-break-before: always;" th:each="image, iter : ${images}" th:if="${iter.index &gt; 0}">
             <div class="image-container">
                 <div class="image-wrapper">
-                    <img th:if="${image != null and image != ''}"
-                         th:src="${image}"
-                         th:alt="'Image ' + (${iter.index} + 1)" />
-                    <div th:if="${image == null or image == ''}"
-                         class="image-placeholder">
+                    <img th:alt="'Image ' + (${iter.index} + 1)" th:if="${image != null and image != ''}" th:src="${image}"/>
+                    <div class="image-placeholder" th:if="${image == null or image == ''}">
                         [Image not available]
                     </div>
                 </div>
@@ -1039,9 +1145,7 @@
         </div>
     </div>
 </div>
-
 <!-- Bootstrap Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
-
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet"/>
 </body>
 </html>
