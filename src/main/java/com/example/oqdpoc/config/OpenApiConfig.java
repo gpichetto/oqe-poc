@@ -93,10 +93,58 @@ public class OpenApiConfig {
                             .addApiResponse("401", new ApiResponse().description("Unauthorized - Missing or invalid API key"))
                             .addApiResponse("500", createErrorResponse("Internal server error")));
 
-            // Add the operation to the OpenAPI paths
+            // Add the operations to the OpenAPI paths
             Paths paths = openApi.getPaths() != null ? openApi.getPaths() : new Paths();
-            paths.addPathItem("/api/pdf/render-job-ticket-with-images",
-                    new PathItem().post(pdfOperation));
+            
+            // Note: Removed render-job-ticket-with-images endpoint from documentation
+            // as requested
+                    
+            // Add render-job-ticket-short-work-period endpoint
+            Operation shortWorkPeriodOperation = new Operation()
+                    .tags(Collections.singletonList("PDF Generation"))
+                    .summary("Generate PDF from job ticket with short work period details")
+                    .description("Generates a PDF document from a job ticket JSON and optional short work period details. " +
+                            "Supports both JSON response with base64-encoded PDF or direct PDF download.")
+                    .addParametersItem(new io.swagger.v3.oas.models.parameters.Parameter()
+                            .name("Accept")
+                            .in("header")
+                            .schema(new StringSchema()
+                                    .addEnumItem(MediaType.APPLICATION_JSON_VALUE)
+                                    .addEnumItem(MediaType.APPLICATION_PDF_VALUE))
+                            .description("Response type (defaults to application/json)"))
+                    .requestBody(new RequestBody()
+                            .content(new Content()
+                                    .addMediaType(MediaType.MULTIPART_FORM_DATA_VALUE,
+                                            new io.swagger.v3.oas.models.media.MediaType()
+                                                    .schema(new ObjectSchema()
+                                                            .addProperty("jobTicket", new StringSchema()
+                                                                    .description("JSON string containing job ticket data")
+                                                                    .example("{\"checklistId\": \"12345\", \"title\": \"Job Ticket\"}"))
+                                                            .addProperty("shortWorkPeriod", new StringSchema()
+                                                                    .description("Optional JSON string containing short work period details")
+                                                                    .example("{\"workOrderNumber\": \"WO-12345\", \"description\": \"Maintenance work\"}"))))))
+                    .responses(new ApiResponses()
+                            .addApiResponse("200", new ApiResponse()
+                                    .description("PDF generated successfully")
+                                    .content(new Content()
+                                            .addMediaType(MediaType.APPLICATION_JSON_VALUE,
+                                                    new io.swagger.v3.oas.models.media.MediaType()
+                                                            .schema(new ObjectSchema()
+                                                                    .addProperty("status", new StringSchema().example("success"))
+                                                                    .addProperty("filename", new StringSchema().example("job-ticket-with-work-order.pdf"))
+                                                                    .addProperty("pdfBase64", new StringSchema()
+                                                                            .description("Base64-encoded PDF content")
+                                                                            .example("JVBERi0xLjQKJdP0z... (truncated)"))))
+                                            .addMediaType(MediaType.APPLICATION_PDF_VALUE,
+                                                    new io.swagger.v3.oas.models.media.MediaType()
+                                                            .schema(new StringSchema().format("binary")))))
+                            .addApiResponse("400", createErrorResponse("Invalid input"))
+                            .addApiResponse("401", new ApiResponse().description("Unauthorized - Missing or invalid API key"))
+                            .addApiResponse("500", createErrorResponse("Internal server error")));
+                    
+            paths.addPathItem("/api/pdf/render-job-ticket-short-work-period",
+                    new PathItem().post(shortWorkPeriodOperation));
+                    
             openApi.setPaths(paths);
         };
     }
@@ -107,6 +155,11 @@ public class OpenApiConfig {
                 .content(new Content()
                         .addMediaType(MediaType.APPLICATION_JSON_VALUE,
                                 new io.swagger.v3.oas.models.media.MediaType()
-                                        .schema(new Schema<Object>().$ref("#/components/schemas/ErrorResponse"))));
+                                        .schema(new ObjectSchema()
+                                                .addProperty("timestamp", new StringSchema().example("2025-10-29T15:05:00Z"))
+                                                .addProperty("status", new IntegerSchema().example(400))
+                                                .addProperty("error", new StringSchema().example("Bad Request"))
+                                                .addProperty("message", new StringSchema().example(description))
+                                                .addProperty("path", new StringSchema().example("/api/endpoint")))));
     }
 }

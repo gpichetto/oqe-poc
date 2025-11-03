@@ -14,30 +14,5 @@ class PdfGenerationServiceTest {
     @InjectMocks
     private PdfGenerationService pdfGenerationService;
 
-    @Test
-    void generateJobTicketPdfWithImages_shouldGeneratePdfSuccessfully() {
-        // Arrange
-        String testHtml = "<html><body>Test PDF with Images</body></html>";
-        
-        // Act
-        byte[] result = pdfGenerationService.generateJobTicketPdfWithImages(testHtml);
-        
-        // Assert
-        assertNotNull(result);
-        assertTrue(result.length > 0);
-    }
 
-    @Test
-    void generateJobTicketPdfWithImages_shouldThrowWhenHtmlIsNull() {
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class,
-            () -> pdfGenerationService.generateJobTicketPdfWithImages(null));
-    }
-
-    @Test
-    void generateJobTicketPdfWithImages_shouldThrowWhenHtmlIsEmpty() {
-        // Act & Assert
-        assertThrows(IllegalArgumentException.class, 
-            () -> pdfGenerationService.generateJobTicketPdfWithImages(""));
-    }
 }
