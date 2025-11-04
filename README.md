@@ -6,7 +6,7 @@ A Spring Boot microservice for generating PDFs from JSON data.
 
 - Docker
 - Java 17+
-- Gradle (optional, for local development)
+- Gradle
 
 ## Run Options
 
@@ -116,4 +116,3 @@ docker rm pdf-service
 ```bash
 docker build -t pdf-service .
 ```
-
