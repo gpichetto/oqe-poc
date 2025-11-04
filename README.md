@@ -42,6 +42,7 @@ docker compose down
    ```bash
    ./run-docker.sh
    ```
+   This script also ensures a Redis container is running as part of the stack.
 
 ## Access URLs
 
@@ -53,6 +54,43 @@ docker compose down
   - Swagger UI: `http://localhost:8081/swagger-ui/index.html`
   - OpenAPI JSON: `http://localhost:8081/v3/api-docs`
   - Health: `http://localhost:8081/actuator/health`
+
+### Docker Compose commands (PDF service)
+
+```bash
+# Build only the PDF service image
+docker compose build pdf-service
+
+# Start only the PDF service (Redis dependency will start automatically)
+docker compose up -d pdf-service
+
+# Start with a custom API key
+APP_API_KEY="your-custom-api-key" docker compose up -d pdf-service
+
+# Tail logs for the PDF service
+docker compose logs -f pdf-service
+
+# Restart the PDF service
+docker compose restart pdf-service
+
+# Stop and remove only the PDF service container
+docker compose stop pdf-service
+docker compose rm -f pdf-service
+
+# Show status of all services
+docker compose ps
+
+# Health check (Docker maps container 8085 -> host 8081)
+curl http://localhost:8081/actuator/health
+```
+
+## Caching (Redis requirement)
+
+- The service uses Redis to cache the job ticket template when running with the `dev` profile.
+- The helper script (`./run-docker.sh`) and Docker Compose start a Redis container (`redis-oqe`) and configure the app to use it (host `redis-oqe`, port `6379`).
+- Local IDE runs (default profile): Redis is not required. Caching is inactive unless you explicitly enable the `dev` profile.
+  - Optional: run Redis locally on `localhost:6379` and enable `dev` if you want to test caching.
+  - Optional: explicitly disable caching by setting `spring.cache.type=none` for local tests.
 
 ## API Usage
 

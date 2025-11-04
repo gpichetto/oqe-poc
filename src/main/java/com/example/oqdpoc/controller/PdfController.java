@@ -1,9 +1,8 @@
 package com.example.oqdpoc.controller;
 
-import com.example.oqdpoc.model.shortworkperiod.WorkOrder;
 import com.example.oqdpoc.model.jobticket.JobTicket;
+import com.example.oqdpoc.model.shortworkperiod.WorkOrder;
 
-import java.io.File;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
@@ -11,6 +10,7 @@ import com.example.oqdpoc.service.PdfGenerationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.core.io.ClassPathResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -36,7 +36,7 @@ import java.time.format.DateTimeFormatter;
 public class PdfController {
     private static final Logger log = LoggerFactory.getLogger(PdfController.class);
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-    private static final String LOGO_PATH = new java.io.File("src/main/resources/static/images/thales-logo.png").getAbsolutePath();
+    private static final String LOGO_CLASSPATH = "static/images/thales-logo.png";
 
     private final PdfGenerationService pdfGenerationService;
     private final TemplateEngine templateEngine;
@@ -170,9 +170,22 @@ public class PdfController {
         context.setVariable("jobTicket", jobTicket);
         context.setVariable("workOrderForReport", workOrderForReport);
         
-        // Set the logo URL - use a file URL that the PDF renderer can access
-        String logoPath = new File(LOGO_PATH).toURI().toString();
-        context.setVariable("logoUrl", logoPath);
+        // Load logo from classpath and embed as data URL for portability
+        try {
+            ClassPathResource logoResource = new ClassPathResource(LOGO_CLASSPATH);
+            if (logoResource.exists()) {
+                try (java.io.InputStream in = logoResource.getInputStream()) {
+                    byte[] bytes = in.readAllBytes();
+                    String base64 = Base64.getEncoder().encodeToString(bytes);
+                    String dataUrl = "data:image/png;base64," + base64;
+                    context.setVariable("logoUrl", dataUrl);
+                }
+            } else {
+                log.warn("Logo resource not found on classpath: {}", LOGO_CLASSPATH);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load logo from classpath: {}", e.getMessage());
+        }
         context.setVariable("currentDate", java.time.LocalDateTime.now());
 
         // Process the template with the data
